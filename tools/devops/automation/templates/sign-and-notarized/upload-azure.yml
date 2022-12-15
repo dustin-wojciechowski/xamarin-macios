@@ -72,7 +72,7 @@ steps:
     GitHubToken: $(GitHub.Token)
     ArtifactDirectory: $(Build.SourcesDirectory)/package-internal
 
-- task: AzureFileCopy@3
+- task: AzureFileCopy@5
   displayName: 'Publish package to Azure'
   name: upload
   inputs:
@@ -84,7 +84,7 @@ steps:
     BlobPrefix: $(Build.SourceBranchName)/$(Build.SourceVersion)/$(Build.BuildId)/package  # ideally, we would use a variable for this
     outputStorageContainerSasToken: PackageSasToken
 
-- task: AzureFileCopy@3
+- task: AzureFileCopy@5
   displayName: 'Publish manifest to Azure'
   inputs:
     SourcePath: $(Build.SourcesDirectory)/artifacts/package/manifest
@@ -95,7 +95,7 @@ steps:
     BlobPrefix: jenkins/$(Build.SourceBranchName)/$(Build.SourceVersion)
     outputStorageContainerSasToken: PackageSasToken
 
-- task: AzureFileCopy@3
+- task: AzureFileCopy@5
   displayName: 'Publish manifest to Azure as latest'
   inputs:
     SourcePath: $(Build.SourcesDirectory)/artifacts/package/manifest
@@ -106,7 +106,7 @@ steps:
     BlobPrefix: jenkins/$(Build.SourceBranchName)/latest
     outputStorageContainerSasToken: PackageSasToken
 
-- task: AzureFileCopy@3
+- task: AzureFileCopy@5
   displayName: 'Publish manifest to Azure per commit'
   inputs:
     SourcePath: $(Build.SourcesDirectory)/artifacts/package/manifest
