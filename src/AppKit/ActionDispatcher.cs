@@ -87,10 +87,8 @@ namespace AppKit {
 
 		public static void RemoveAction (NSObject? target, EventHandler handler)
 		{
-			var ctarget = target as ActionDispatcher;
-			if (ctarget is null)
-				return;
-			ctarget.Activated -= handler;
+			if (target is ActionDispatcher ctarget)
+				ctarget.Activated -= handler;
 		}
 
 		public static NSObject SetupDoubleAction (NSObject? target, EventHandler doubleHandler)
