@@ -79,12 +79,12 @@ steps:
       name: workload_file
       displayName: 'Generate "WorkloadRollback.json"'
 
-    - task: PublishPipelineArtifact@1
-      displayName: 'Publish WorkloadRollback.json'
-      inputs:
+    - template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
+      parameters:
+        displayName: 'Publish WorkloadRollback.json'
+        continueOnError: true
         targetPath: $(Build.SourcesDirectory)/WorkloadRollback.json
         artifactName: WorkloadRollback
-      continueOnError: true
 
     - bash: |
         var=$(make -C $(Build.SourcesDirectory)/xamarin-macios/tools/devops print-variable VARIABLE=IOS_PACKAGE_VERSION)
@@ -107,20 +107,20 @@ steps:
       name: pkg_versions_file
       displayName: 'Generate PkgsVersions.json'
 
-    - task: PublishPipelineArtifact@1
-      displayName: 'Publish PkgsVersions.json'
-      inputs:
+    - template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
+      parameters:
+        displayName: 'Publish PkgsVersions.json'
+        continueOnError: true
         targetPath: $(Build.SourcesDirectory)/PkgsVersions.json
         artifactName: PkgsVersions
-      continueOnError: true
 
     # upload each of the pkgs into the pipeline artifacts
-    - task: PublishPipelineArtifact@1
-      displayName: 'Publish Build Artifacts'
-      inputs:
+    - template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
+      parameters:
+        displayName: 'Publish Build Artifacts'
+        continueOnError: true
         targetPath: $(Build.SourcesDirectory)/package
         artifactName: not-signed-package
-      continueOnError: true
 
     # funny enough we need these profiles to build the mac tests
     - bash: '"$BUILD_SOURCESDIRECTORY"/maccore/tools/install-qa-provisioning-profiles.sh -v'
@@ -163,12 +163,12 @@ steps:
       continueOnError: true # not a terrible blocking issue
       timeoutInMinutes: 60
 
-    - task: PublishPipelineArtifact@1
-      displayName: 'Publish introspection dependencies'
-      inputs:
+    - template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
+      parameters:
+        displayName: 'Publish introspection dependencies'
+        continueOnError: true
         targetPath: $(Build.SourcesDirectory)/xamarin-macios/tools/mtouch/package-introspection-dependencies.zip
         artifactName: package-introspection-dependencies
-      continueOnError: true
 
     - bash: |
         set -x
@@ -180,12 +180,12 @@ steps:
       continueOnError: true # not a terrible blocking issue
       timeoutInMinutes: 60
 
-    - task: PublishPipelineArtifact@1
-      displayName: 'Publish test libraries dependencies'
-      inputs:
+    - template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
+      parameters:
+        displayName: 'Publish test libraries dependencies'
+        continueOnError: true
         targetPath: $(Build.SourcesDirectory)/xamarin-macios/tests/package-test-libraries.zip 
         artifactName: package-test-libraries
-      continueOnError: true
 
     - ${{ if eq(parameters.uploadBinlogs, true) }}:
       # Copy all the binlogs to a separate directory, keeping directory structure.
@@ -198,10 +198,10 @@ steps:
         condition: succeededOrFailed()
 
       # Publish all the binlogs we collected in the previous step
-      - task: PublishPipelineArtifact@1
-        displayName: 'Publish Artifact: All binlogs'
-        inputs:
+      - template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
+        parameters:
+          displayName: 'Publish Artifact: All binlogs'
+          continueOnError: true
+          condition: succeededOrFailed()
           targetPath: $(Build.ArtifactStagingDirectory)/all-binlogs
           artifactName: all-binlogs-$(Build.BuildId)-$(System.JobAttempt)
-        continueOnError: true
-        condition: succeededOrFailed()

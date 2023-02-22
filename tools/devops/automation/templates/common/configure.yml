@@ -49,9 +49,9 @@ steps:
 
 # upload config to be consumed later
 - ${{ if eq(parameters.uploadArtifacts, true) }}:
-  - task: PublishPipelineArtifact@1
-    displayName: 'Publish Artifact: configuration.json'
-    inputs:
+  - template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
+    parameters:
+      displayName: 'Publish Artifact: configuration.json'
+      continueOnError: true
       targetPath: '$(Build.ArtifactStagingDirectory)/configuration.json'
       artifactName: build-configuration
-    continueOnError: true

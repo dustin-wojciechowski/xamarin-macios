@@ -142,12 +142,12 @@ steps:
 
 # upload the artifacts.json to the build pipeline artifacts so that it can be consumed by other jobs to
 # get the required urls
-- task: PublishPipelineArtifact@1
-  displayName: 'Publish Build Artifacts'
-  inputs:
+- template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
+  parameters:
+    displayName: 'Publish Build Artifacts'
+    continueOnError: true
     targetPath: $(Build.SourcesDirectory)/artifacts/package/artifacts.json
     artifactName: pkg-info
-  continueOnError: true
 
 - pwsh: |
     Import-Module $Env:SYSTEM_DEFAULTWORKINGDIRECTORY\xamarin-macios\tools\devops\automation\scripts\MaciosCI.psd1

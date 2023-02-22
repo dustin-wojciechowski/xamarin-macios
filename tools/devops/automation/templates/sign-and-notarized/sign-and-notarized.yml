@@ -104,13 +104,13 @@ steps:
     condition: ${{ and(eq(parameters.condition, true), eq(variables['System.debug'], 'true')) }}
 
   # Upload the esrp temp dir
-  - task: PublishPipelineArtifact@1
-    displayName: 'Publish Artifact: ESRP temp'
-    inputs:
+  - template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
+    parameters:
+      displayName: 'Publish Artifact: ESRP temp'
+      continueOnError: true
+      condition: ${{ and(eq(parameters.condition, true), eq(variables['System.debug'], 'true')) }}
       targetPath: '$(Build.ArtifactStagingDirectory)/esrp.zip'
       artifactName: ESRP-tmp-${{ parameters.packageName }}
-    continueOnError: true
-    condition: ${{ and(eq(parameters.condition, true), eq(variables['System.debug'], 'true')) }}
 
 - ${{ if eq(parameters.isPR, false) }}: 
   - task: PowerShell@2
@@ -120,9 +120,9 @@ steps:
     condition: ${{ parameters.condition }}
 
 # always upload no matter what, since if we are not signing we need the artifact in the pipeline
-- task: PublishPipelineArtifact@1
-  displayName: 'Publish Notarized Classic Artifacts'
-  inputs:
+- template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
+  parameters:
+    displayName: 'Publish Notarized Classic Artifacts'
+    continueOnError: true
     targetPath: $(Build.SourcesDirectory)/package
     artifactName: classic-${{ parameters.packageName }}-signed
-  continueOnError: true

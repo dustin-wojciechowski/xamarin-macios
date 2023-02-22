@@ -133,9 +133,9 @@ jobs:
     workingDirectory: $(Build.ArtifactStagingDirectory)
 
   # always upload no matter what, since if we are not signing we need the artifact in the pipeline
-  - task: PublishPipelineArtifact@1
-    displayName: 'Publish Notarized Dotnet Artifacts'
-    inputs:
+  - template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
+    parameters:
+      displayName: 'Publish Notarized Dotnet Artifacts'
+      continueOnError: true
       targetPath: $(Build.SourcesDirectory)/package
       artifactName: dotnet-signed
-    continueOnError: true

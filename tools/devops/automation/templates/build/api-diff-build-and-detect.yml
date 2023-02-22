@@ -57,10 +57,10 @@ steps:
     AUTH_TOKEN_GITHUB_COM: ${{ parameters.gitHubToken }}
 
 # publish the resulting artifact
-- task: PublishPipelineArtifact@1
-  displayName: 'Publish change detection artifact'
-  inputs:
+- template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
+  parameters:
+    displayName: 'Publish change detection artifact'
+    condition: succeededOrFailed() # we always want to upload the zip as an artifact
+    continueOnError: true
     targetPath: '$(Build.ArtifactStagingDirectory)/change-detection/change-detection.zip'
     artifactName: change-detection
-  condition: succeededOrFailed() # we always want to upload the zip as an artifact
-  continueOnError: true

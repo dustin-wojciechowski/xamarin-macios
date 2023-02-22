@@ -74,14 +74,13 @@ steps:
 
 # only upload when told so
 - ${{ if eq(parameters.uploadLogs, true) }}:
-  - task: PublishPipelineArtifact@1
-    displayName: 'Publish Artifact: Agent logs'
-    condition: always()
-    inputs:
+  - template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
+    parameters:
+      displayName: 'Publish Artifact: Agent logs'
+      continueOnError: true
       # add or not the working dir to the upload
       ${{ if eq(parameters.workingDirectory, '') }}:
         targetPath: ${{ parameters.outputPath }}
       ${{ else }}:
         targetPath: ${{ parameters.workingDirectory }}/${{ parameters.outputPath }} 
       artifactName: $(Agent.Name)-$(System.JobName)-$(System.JobId)-${{ parameters.outputPath }} 
-    continueOnError: true

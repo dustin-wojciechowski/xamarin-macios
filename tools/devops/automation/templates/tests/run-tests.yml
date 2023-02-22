@@ -215,13 +215,13 @@ steps:
   timeoutInMinutes: 30
 
 # Publish the simulator diagnostic logs
-- task: PublishPipelineArtifact@1
-  displayName: 'Publish Artifact: Simulator diagnostic info'
-  inputs:
+- template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
+  parameters:
+    displayName: 'Publish Artifact: Simulator diagnostic info'
+    condition: and(eq(variables['system.debug'], true), succeededOrFailed())
+    continueOnError: true
     targetPath: $(System.DefaultWorkingDirectory)/diagnostic-sim-output
     artifactName: diagnostic-simulator-info-$(Build.BuildId)-$(System.JobAttempt)-${{ parameters.label }}
-  condition: and(eq(variables['system.debug'], true), succeededOrFailed())
-  continueOnError: true
 
 # set the status of the test results. Do not add a comment yet since we have not uploaded any of the needed files for the comment, this way
 # we report the result as soon as we have it and ensure that we set the status from pending to the appropiate value.
@@ -241,13 +241,13 @@ steps:
   timeoutInMinutes: 5
 
 # Upload TestSummary as an artifact.
-- task: PublishPipelineArtifact@1
-  displayName: 'Publish Artifact: TestSummary'
-  inputs:
+- template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
+  parameters:
+    displayName: 'Publish Artifact: TestSummary'
+    continueOnError: true
+    condition: succeededOrFailed()
     targetPath: 'xamarin-macios/tests/TestSummary.md'
     artifactName: TestSummary-${{ parameters.testPrefix }}-$(System.JobAttempt)
-  continueOnError: true
-  condition: succeededOrFailed()
 
 - pwsh: |
     $summaryName = "TestSummary-${{ parameters.testPrefix }}.md"
@@ -306,13 +306,13 @@ steps:
 # Create HtmlReport artifact. This serves two purposes:
 # 1. It is the way we are going to share the HtmlReport with the publish_html job that is executed on a Windows machine.
 # 2. Users can download this if they want.
-- task: PublishPipelineArtifact@1
-  displayName: 'Publish Artifact: HtmlReport'
-  inputs:
+- template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
+  parameters:
+    displayName: 'Publish Artifact: HtmlReport'
+    continueOnError: true
+    condition: succeededOrFailed()
     targetPath: '$(Build.ArtifactStagingDirectory)/HtmlReport.zip'
     artifactName: HtmlReport-${{ parameters.testPrefix }}-$(System.JobAttempt)
-  continueOnError: true
-  condition: succeededOrFailed()
 
 # Upload all the binlogs
 # Copy all the binlogs to a separate directory, keeping directory structure.
@@ -325,13 +325,13 @@ steps:
   condition: succeededOrFailed()
 
 # Publish all the binlogs we collected in the previous step
-- task: PublishPipelineArtifact@1
-  displayName: 'Publish Artifact: All binlogs'
-  inputs:
+- template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
+  parameters:
+    displayName: 'Publish Artifact: All binlogs'
+    continueOnError: true
+    condition: succeededOrFailed()
     targetPath: $(Build.ArtifactStagingDirectory)/all-binlogs
     artifactName: all-binlogs-test-${{ parameters.testPrefix }}-$(Build.BuildId)-$(System.JobAttempt)
-  continueOnError: true
-  condition: succeededOrFailed()
 
 # Be nice and clean behind you
 - pwsh: |
