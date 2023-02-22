@@ -38,19 +38,20 @@ steps:
     displayName: 'Generate Build Asset Registry Manifest for ${{ platform.platform }}'
     condition: and(succeeded(), contains(variables['configuration.BuildNugets'], 'True'), ne(variables['${{ platform.conditionVariable }}'],''))
 
-- template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
-  parameters:
-    displayName: 'Publish Artifact: AssetManifests'
-    continueOnError: true
-    condition: and(succeededOrFailed(), contains(variables['configuration.BuildNugets'], 'True'))
-    targetPath: $(Build.SourcesDirectory)/xamarin-macios/_build/nupkgs/bar-manifests
-    artifact: AssetManifests
+- ${{ if contains(variables['configuration.BuildNugets'], 'True') }}:
+  - template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
+    parameters:
+      displayName: 'Publish Artifact: AssetManifests'
+      continueOnError: true
+      condition: succeededOrFailed()
+      targetPath: $(Build.SourcesDirectory)/xamarin-macios/_build/nupkgs/bar-manifests
+      artifact: AssetManifests
 
 
-- template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
-  parameters:
-    displayName: 'Publish Artifact: build-binlogs'
-    continueOnError: true
-    condition: and(succeededOrFailed(), contains(variables['configuration.BuildNugets'], 'True'))
-    targetPath: $(Build.ArtifactStagingDirectory)/build-binlogs
-    artifact: build-binlogs-$(Build.BuildId)-$(System.JobAttempt)
+  - template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
+    parameters:
+      displayName: 'Publish Artifact: build-binlogs'
+      continueOnError: true
+      condition: succeededOrFailed()
+      targetPath: $(Build.ArtifactStagingDirectory)/build-binlogs
+      artifact: build-binlogs-$(Build.BuildId)-$(System.JobAttempt)
