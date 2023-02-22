@@ -138,4 +138,4 @@ jobs:
       displayName: 'Publish Notarized Dotnet Artifacts'
       continueOnError: true
       targetPath: $(Build.SourcesDirectory)/package
-      artifactName: dotnet-signed
+      artifact: dotnet-signed

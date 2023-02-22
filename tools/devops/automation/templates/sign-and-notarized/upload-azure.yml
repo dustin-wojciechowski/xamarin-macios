@@ -147,7 +147,7 @@ steps:
     displayName: 'Publish Build Artifacts'
     continueOnError: true
     targetPath: $(Build.SourcesDirectory)/artifacts/package/artifacts.json
-    artifactName: pkg-info
+    artifact: pkg-info
 
 - pwsh: |
     Import-Module $Env:SYSTEM_DEFAULTWORKINGDIRECTORY\xamarin-macios\tools\devops\automation\scripts\MaciosCI.psd1

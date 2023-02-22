@@ -110,7 +110,7 @@ steps:
       continueOnError: true
       condition: ${{ and(eq(parameters.condition, true), eq(variables['System.debug'], 'true')) }}
       targetPath: '$(Build.ArtifactStagingDirectory)/esrp.zip'
-      artifactName: ESRP-tmp-${{ parameters.packageName }}
+      artifact: ESRP-tmp-${{ parameters.packageName }}
 
 - ${{ if eq(parameters.isPR, false) }}: 
   - task: PowerShell@2
@@ -125,4 +125,4 @@ steps:
     displayName: 'Publish Notarized Classic Artifacts'
     continueOnError: true
     targetPath: $(Build.SourcesDirectory)/package
-    artifactName: classic-${{ parameters.packageName }}-signed
+    artifact: classic-${{ parameters.packageName }}-signed

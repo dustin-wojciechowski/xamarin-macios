@@ -84,7 +84,7 @@ steps:
         displayName: 'Publish WorkloadRollback.json'
         continueOnError: true
         targetPath: $(Build.SourcesDirectory)/WorkloadRollback.json
-        artifactName: WorkloadRollback
+        artifact: WorkloadRollback
 
     - bash: |
         var=$(make -C $(Build.SourcesDirectory)/xamarin-macios/tools/devops print-variable VARIABLE=IOS_PACKAGE_VERSION)
@@ -112,7 +112,7 @@ steps:
         displayName: 'Publish PkgsVersions.json'
         continueOnError: true
         targetPath: $(Build.SourcesDirectory)/PkgsVersions.json
-        artifactName: PkgsVersions
+        artifact: PkgsVersions
 
     # upload each of the pkgs into the pipeline artifacts
     - template: sdk-unified/steps/publish-pipeline-artifact/v1.yml@yaml-templates
@@ -120,7 +120,7 @@ steps:
         displayName: 'Publish Build Artifacts'
         continueOnError: true
         targetPath: $(Build.SourcesDirectory)/package
-        artifactName: not-signed-package
+        artifact: not-signed-package
 
     # funny enough we need these profiles to build the mac tests
     - bash: '"$BUILD_SOURCESDIRECTORY"/maccore/tools/install-qa-provisioning-profiles.sh -v'
@@ -168,7 +168,7 @@ steps:
         displayName: 'Publish introspection dependencies'
         continueOnError: true
         targetPath: $(Build.SourcesDirectory)/xamarin-macios/tools/mtouch/package-introspection-dependencies.zip
-        artifactName: package-introspection-dependencies
+        artifact: package-introspection-dependencies
 
     - bash: |
         set -x
@@ -185,7 +185,7 @@ steps:
         displayName: 'Publish test libraries dependencies'
         continueOnError: true
         targetPath: $(Build.SourcesDirectory)/xamarin-macios/tests/package-test-libraries.zip 
-        artifactName: package-test-libraries
+        artifact: package-test-libraries
 
     - ${{ if eq(parameters.uploadBinlogs, true) }}:
       # Copy all the binlogs to a separate directory, keeping directory structure.
@@ -204,4 +204,4 @@ steps:
           continueOnError: true
           condition: succeededOrFailed()
           targetPath: $(Build.ArtifactStagingDirectory)/all-binlogs
-          artifactName: all-binlogs-$(Build.BuildId)-$(System.JobAttempt)
+          artifact: all-binlogs-$(Build.BuildId)-$(System.JobAttempt)

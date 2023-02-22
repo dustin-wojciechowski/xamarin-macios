@@ -63,4 +63,4 @@ steps:
     condition: succeededOrFailed() # we always want to upload the zip as an artifact
     continueOnError: true
     targetPath: '$(Build.ArtifactStagingDirectory)/change-detection/change-detection.zip'
-    artifactName: change-detection
+    artifact: change-detection

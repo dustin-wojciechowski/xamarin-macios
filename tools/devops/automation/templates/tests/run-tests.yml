@@ -221,7 +221,7 @@ steps:
     condition: and(eq(variables['system.debug'], true), succeededOrFailed())
     continueOnError: true
     targetPath: $(System.DefaultWorkingDirectory)/diagnostic-sim-output
-    artifactName: diagnostic-simulator-info-$(Build.BuildId)-$(System.JobAttempt)-${{ parameters.label }}
+    artifact: diagnostic-simulator-info-$(Build.BuildId)-$(System.JobAttempt)-${{ parameters.label }}
 
 # set the status of the test results. Do not add a comment yet since we have not uploaded any of the needed files for the comment, this way
 # we report the result as soon as we have it and ensure that we set the status from pending to the appropiate value.
@@ -247,7 +247,7 @@ steps:
     continueOnError: true
     condition: succeededOrFailed()
     targetPath: 'xamarin-macios/tests/TestSummary.md'
-    artifactName: TestSummary-${{ parameters.testPrefix }}-$(System.JobAttempt)
+    artifact: TestSummary-${{ parameters.testPrefix }}-$(System.JobAttempt)
 
 - pwsh: |
     $summaryName = "TestSummary-${{ parameters.testPrefix }}.md"
@@ -312,7 +312,7 @@ steps:
     continueOnError: true
     condition: succeededOrFailed()
     targetPath: '$(Build.ArtifactStagingDirectory)/HtmlReport.zip'
-    artifactName: HtmlReport-${{ parameters.testPrefix }}-$(System.JobAttempt)
+    artifact: HtmlReport-${{ parameters.testPrefix }}-$(System.JobAttempt)
 
 # Upload all the binlogs
 # Copy all the binlogs to a separate directory, keeping directory structure.
@@ -331,7 +331,7 @@ steps:
     continueOnError: true
     condition: succeededOrFailed()
     targetPath: $(Build.ArtifactStagingDirectory)/all-binlogs
-    artifactName: all-binlogs-test-${{ parameters.testPrefix }}-$(Build.BuildId)-$(System.JobAttempt)
+    artifact: all-binlogs-test-${{ parameters.testPrefix }}-$(Build.BuildId)-$(System.JobAttempt)
 
 # Be nice and clean behind you
 - pwsh: |
