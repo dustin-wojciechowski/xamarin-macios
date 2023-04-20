@@ -33,7 +33,7 @@
   For Debug: (Note: Replace placeholder information before building)
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <CodesignKey>Apple Development: YOURNAME (*******)</CodesignKey>
-    <CodesignEntitlements>Entitlements.plist</CodesignEntitlements>
+    <CodesignEntitlements>Entitlements.Debug.plist</CodesignEntitlements>
     <CodesignProvision>YOUR PROFILE NAME</CodesignProvision>
   </PropertyGroup>
   -->
@@ -44,10 +44,16 @@
     <ProvisionType>Manual</ProvisionType>
     <CreatePackage>true</CreatePackage>
     <EnablePackageSigning>true</EnablePackageSigning>
-    <CodesignEntitlements>Entitlements.plist</CodesignEntitlements>
+    <CodesignEntitlements>Entitlements.Release.plist</CodesignEntitlements>
     <CodesignKey>Apple Development: YOURNAME (*******)</CodesignKey>
     <CodesignProvision>YOUR PROFILE NAME</CodesignProvision>
     <PackageSigningKey>3rd Party Mac Developer Installer: YOURNAME (*******)</PackageSigningKey>
     <UseHardenedRuntime>true</UseHardenedRuntime>
   </PropertyGroup>-->
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <CreatePackage>false</CreatePackage>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <CreatePackage>false</CreatePackage>
+  </PropertyGroup>
 </Project>
