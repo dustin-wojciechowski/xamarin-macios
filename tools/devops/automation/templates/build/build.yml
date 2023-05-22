@@ -55,6 +55,9 @@ steps:
   parameters:
     keyringPass: ${{ parameters.keyringPass }}
 
+- task: xamops.azdevex.system-macos-keychain-list-task.system-macos-keychain-list-task@1
+  displayName: 'Show keychains'
+
 - template: install-certificates.yml@yaml-templates
   parameters:
     DeveloperIdApplication: $(developer-id-application)
