@@ -154,7 +154,7 @@ resources:
   - repository: yaml-templates
     type: github
     name: xamarin/yaml-templates
-    ref: refs/heads/use-task-vs-template
+    ref: refs/heads/set-os-env-task
     endpoint: xamarin
 
   - repository: sdk-insertions
