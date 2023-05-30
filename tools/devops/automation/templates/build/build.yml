@@ -55,8 +55,10 @@ steps:
   parameters:
     keyringPass: ${{ parameters.keyringPass }}
 
-- task: xamops.azdevex.system-macos-keychain-list-task.list@1
-  displayName: 'Show keychains'
+
+- task: xamops.azdevex.system-set-platform-task.os-name@1
+  displayName: 'Test: Set platform variable'
+  condition: always()
 
 - template: install-certificates.yml@yaml-templates
   parameters:
