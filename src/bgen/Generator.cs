@@ -153,11 +153,6 @@ public partial class Generator : IMemberGatherer {
 		}
 	}
 
-	bool IsNativeType (Type pt)
-	{
-		return (pt == TypeManager.System_Int32 || pt == TypeManager.System_Int64 || pt == TypeManager.System_Byte || pt == TypeManager.System_Int16);
-	}
-
 	public bool IsNSObject (Type type)
 	{
 		if (type == TypeManager.NSObject)
@@ -240,7 +235,7 @@ public partial class Generator : IMemberGatherer {
 				return "UIntPtr";
 		}
 
-		if (IsNativeType (mai.Type))
+		if (TypeManager.IsNativeType (mai.Type))
 			return PrimitiveType (mai.Type, formatted);
 
 		if (mai.Type == TypeManager.System_String) {
@@ -868,7 +863,7 @@ public partial class Generator : IMemberGatherer {
 				return "(UIntPtr) " + safe_name;
 		}
 
-		if (IsNativeType (pi.ParameterType))
+		if (TypeManager.IsNativeType (pi.ParameterType))
 			return safe_name;
 
 		if (pi.ParameterType == TypeManager.System_String) {

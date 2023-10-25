@@ -534,4 +534,9 @@ public class TypeManager {
 
 		return tname;
 	}
+
+	public bool IsNativeType (Type pt)
+	{
+		return (pt == System_Int32 || pt == System_Int64 || pt == System_Byte || pt == System_Int16);
+	}
 }
