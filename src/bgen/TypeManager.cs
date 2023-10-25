@@ -539,4 +539,19 @@ public class TypeManager {
 	{
 		return (pt == System_Int32 || pt == System_Int64 || pt == System_Byte || pt == System_Int16);
 	}
+
+	// Is this a wrapped type of NSObject from the MonoTouch/MonoMac binding world?
+	public bool IsWrappedType (Type t)
+	{
+		if (t.IsInterface)
+			return true;
+		if (NSObject is not null)
+			return t.IsSubclassOf (NSObject) || t == NSObject;
+		return false;
+	}
+
+	public bool IsArrayOfWrappedType (Type t)
+	{
+		return t.IsArray && IsWrappedType (t.GetElementType ());
+	}
 }
