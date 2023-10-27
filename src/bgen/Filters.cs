@@ -136,7 +136,7 @@ public partial class Generator {
 	void GenerateProtocolProperties (Type type, Type originalType, HashSet<string> processed)
 	{
 		foreach (var i in type.GetInterfaces ()) {
-			if (!IsProtocolInterface (i, false, out var protocol))
+			if (!TypeManager.IsProtocolInterface (i, false, out var protocol))
 				continue;
 
 			// the same protocol can be included more than once (interfaces) - but we must generate only once

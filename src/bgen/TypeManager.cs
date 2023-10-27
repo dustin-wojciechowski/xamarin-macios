@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
+using Foundation;
+using ObjCRuntime;
 
 #nullable enable
 
 public class TypeManager {
 	public BindingTouch BindingTouch;
+	public AttributeManager AttributeManager { get { return BindingTouch.AttributeManager!; } }
 	Frameworks Frameworks { get; }
 
 	public Type System_Attribute { get; }
@@ -549,4 +552,195 @@ public class TypeManager {
 
 		return tname;
 	}
+	
+	// Is this type something that derives from DictionaryContainerType (or an interface marked up with StrongDictionary)
+	public bool IsDictionaryContainerType (Type t)
+	{
+		return t.IsSubclassOf (DictionaryContainerType) || (t.IsInterface && AttributeManager.HasAttribute<StrongDictionaryAttribute> (t));
+	}
+	
+	public bool IsProtocolInterface (Type type, bool checkPrefix = true)
+	{
+		return IsProtocolInterface (type, checkPrefix, out var _);
+	}
+
+	public bool IsProtocolInterface (Type type, bool checkPrefix, out Type protocol)
+	{
+		protocol = null;
+		// for subclassing the type (from the binding files) is not yet prefixed by an `I`
+		if (checkPrefix && type.Name [0] != 'I')
+			return false;
+
+		protocol = type;
+		if (AttributeManager.HasAttribute<ProtocolAttribute> (type))
+			return true;
+
+		protocol = type.Assembly.GetType (type.Namespace + "." + type.Name.Substring (1), false);
+		if (protocol is null)
+			return false;
+
+		return AttributeManager.HasAttribute<ProtocolAttribute> (protocol);
+	}
+
+	public bool IsModel (Type type)
+		=> AttributeManager.HasAttribute<ModelAttribute> (type) &&
+		   !IsSynthetic (type);
+
+	public bool IsProtocol (Type type)
+		=> AttributeManager.HasAttribute<ProtocolAttribute> (type);
+
+	public bool IsMemberInsideProtocol (Type type) => IsProtocol (type) || IsModel (type);
+
+	public bool IsStatic (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<StaticAttribute> (provider);
+
+	public bool IsAsync (MethodInfo type)
+		=>  AttributeManager.HasAttribute<AsyncAttribute> (type);
+
+	public bool IsAbstract (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<AbstractAttribute> (provider);
+
+	public bool IsAbstract (ICustomAttributeProvider provider, Attribute[] attributes)
+		=>  AttributeManager.HasAttribute<AbstractAttribute> (provider, attributes);
+
+	public bool IsAlign (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<AlignAttribute> (provider);
+
+	public bool IsNullAllowed (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<NullAllowedAttribute> (provider);
+
+	public bool IsObsolete (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<ObsoleteAttribute> (provider);
+
+	public bool IsFactory (ICustomAttributeProvider provider) // TODO is this just methods?
+		=>  AttributeManager.HasAttribute<FactoryAttribute> (provider);
+
+	public bool IsProxy (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<ProxyAttribute> (provider);
+
+	public bool IsProbePresence (ICustomAttributeProvider provider)
+
+		=>  AttributeManager.HasAttribute<ProbePresenceAttribute> (provider);
+
+	public bool IsTransient (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<TransientAttribute> (provider);
+
+	public bool IsParams (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<ParamsAttribute> (provider);
+
+	public bool IsParamArray (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<ParamArrayAttribute> (provider);
+
+	public bool IsDesignatedInitialzier (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<DesignatedInitializerAttribute> (provider);
+
+	public bool IsManual (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<ManualAttribute> (provider);
+
+	public bool IsRetain (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<RetainAttribute> (provider);
+
+	public bool IsBaseType (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<BaseTypeAttribute> (provider);
+
+	public bool IsStrongDictionary (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<StrongDictionaryAttribute> (provider);
+
+
+	public bool IsNoMethod (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<NoMethodAttribute> (provider);
+
+	public bool IsBlockCallback (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<BlockCallbackAttribute> (provider);
+
+	public bool IsCCallback (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<CCallbackAttribute> (provider);
+
+	public bool IsMarshalNativeExceptions (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<MarshalNativeExceptionsAttribute> (provider);
+
+	public bool IsTarget (ParameterInfo pi)
+	{
+		bool isTarget = AttributeManager.HasAttribute<TargetAttribute> (pi);
+		if (isTarget) {
+			throw new BindingException (1031, true,
+				pi.Member.DeclaringType.FullName, pi.Member.Name.GetSafeParamName ());
+		}
+		return isTarget;
+	}
+
+	public bool IsNative (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<NativeAttribute> (provider);
+
+	public bool IsWrap (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<WrapAttribute> (provider);
+
+	public bool IsThreadStatic (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<ThreadStaticAttribute> (provider);
+
+	public bool IsField (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<FieldAttribute> (provider);
+
+	public bool IsCoreImageFilterProperty (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<CoreImageFilterPropertyAttribute> (provider);
+
+	public bool IsNotImplemented (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<NotImplementedAttribute> (provider);
+
+	public bool IsExport (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<ExportAttribute> (provider);
+
+	public bool IsDesignatedInitializer (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<DesignatedInitializerAttribute> (provider);
+
+	public bool IsXpcInterface (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<XpcInterfaceAttribute> (provider);
+
+	public bool IsPartial (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<PartialAttribute> (provider);
+
+	public bool IsCategory (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<CategoryAttribute> (provider);
+
+	public bool IsSealed (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<SealedAttribute> (provider);
+
+	public bool IsZeroCopyStrings (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<ZeroCopyStringsAttribute> (provider);
+
+	public bool IsCoreImageFilter (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<CoreImageFilterAttribute> (provider);
+
+	public bool IsSynthetic (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<SyntheticAttribute> (provider);
+
+	public bool IsDesignatedDefaultCtor (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<DesignatedDefaultCtorAttribute> (provider);
+
+	public bool IsAppearance (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<AppearanceAttribute> (provider);
+
+	public bool IsAdvanced (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<AdvancedAttribute> (provider);
+
+	public bool IsNotification (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<NotificationAttribute> (provider);
+
+	public bool IsCheckDisposed (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<CheckDisposedAttribute> (provider);
+
+	public bool IsNoDefaultValue (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<NoDefaultValueAttribute> (provider);
+
+	public bool IsIgnoredInDelegate (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<IgnoredInDelegateAttribute> (provider);
+
+	public bool DesignatedDefaultCtor (ICustomAttributeProvider provider)
+		=>  AttributeManager.HasAttribute<DesignatedDefaultCtorAttribute> (provider);
+
+	public bool IsMonoNativeFunctionWrapper (ICustomAttributeProvider provider)
+		=> AttributeManager.HasAttribute (provider, "MonoNativeFunctionWrapper");
+
+	public bool IsNativeInteger (ICustomAttributeProvider provider)
+		=> AttributeManager.HasAttribute (provider, "NativeIntegerAttribute");
 }

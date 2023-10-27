@@ -585,13 +585,7 @@ public class AttributeManager {
 		throw ErrorHelper.CreateError (1059, rv.Length, typeof (T).FullName, name);
 	}
 
-	public virtual bool HasNativeAttribute (ICustomAttributeProvider provider)
-	{
-		if (provider is null)
-			return false;
 
-		return HasAttribute (provider, "NativeIntegerAttribute");
-	}
 
 	public virtual bool HasAttribute<T> (ICustomAttributeProvider i, Attribute [] attributes) where T : Attribute
 	{
