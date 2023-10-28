@@ -743,4 +743,7 @@ public class TypeManager {
 
 	public bool IsNativeInteger (ICustomAttributeProvider provider)
 		=> AttributeManager.HasAttribute (provider, "NativeIntegerAttribute");
+
+	public bool Is<T> (ICustomAttributeProvider provider) where T:Attribute
+		=> AttributeManager.HasAttribute<T> (provider);
 }
