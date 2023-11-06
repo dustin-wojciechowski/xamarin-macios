@@ -5473,6 +5473,7 @@ public partial class Generator : IMemberGatherer {
 		var appearance_selectors = gtype.ImplementsAppearance ? gtype.AppearanceSelectors : null;
 
 		using (var sw = GetOutputStreamForType (type)) {
+
 			this.sw = sw;
 			bool is_category_class = AttributeManager.HasAttribute<CategoryAttribute> (type);
 			bool is_static_class = AttributeManager.HasAttribute<StaticAttribute> (type) || is_category_class;
@@ -5490,6 +5491,8 @@ public partial class Generator : IMemberGatherer {
 			Type base_type = bta is not null ? bta.BaseType : TypeManager.System_Object;
 			string objc_type_name = bta is not null ? (bta.Name is not null ? bta.Name : TypeName) : TypeName;
 			string register_name = objc_type_name;
+
+			var m = new MemberInformation (this, this, null, type, is_category_class ? bta.BaseType : null, isModel: is_model);
 
 			if (is_model) {
 				if (!string.IsNullOrEmpty (model.Name)) {
