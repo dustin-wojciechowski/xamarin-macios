@@ -225,41 +225,133 @@ public class BindingTouch : IDisposable {
 		return touch.Main3 (args);
 	}
 
+	// TODO Either break up data blob or try to just pass its members and avoid passing the ojbect as much as possible
+	public class DataBlob {
+		public bool show_help = false;
+		public bool zero_copy = false;
+		public string? basedir = null;
+		public string? tmpdir = null;
+		public string? ns = null;
+		public bool delete_temp = true, debug = false;
+		public bool unsafef = true;
+		public bool external = false;
+		public bool public_mode = true;
+		public bool nostdlib = false;
+		public bool? inline_selectors = null;
+		public List<string> sources;
+		public List<string> resources = new List<string> ();
+		public List<string> linkwith = new List<string> ();
+		public List<string> api_sources = new List<string> ();
+		public List<string> core_sources = new List<string> ();
+		public List<string> extra_sources = new List<string> ();
+		public List<string> defines = new List<string> ();
+		public string? generate_file_list = null;
+		public bool process_enums = false;
+		public Assembly api;
+		public Assembly baselib;
+		public string firstApiDefinitionName;
+
+		public IEnumerable<string> refs;
+		public IEnumerable<string> paths;
+		public OptionSet os;
+	}
+
 	int Main3 (string [] args)
 	{
-		bool show_help = false;
-		bool zero_copy = false;
-		string? basedir = null;
-		string? tmpdir = null;
-		string? ns = null;
-		bool delete_temp = true, debug = false;
-		bool unsafef = true;
-		bool external = false;
-		bool public_mode = true;
-		bool nostdlib = false;
-		bool? inline_selectors = null;
-		List<string> sources;
-		var resources = new List<string> ();
-		var linkwith = new List<string> ();
-		var api_sources = new List<string> ();
-		var core_sources = new List<string> ();
-		var extra_sources = new List<string> ();
-		var defines = new List<string> ();
-		string? generate_file_list = null;
-		bool process_enums = false;
-
+		// TODO there's a lot of logic where code is just returning 1 or 0 immediately. I need to work on the control flow for these. They should probably just throw an exception up based on where they are.
 		ErrorHelper.ClearWarningLevels ();
+		DataBlob dataBlob = CreateOptionSet (args, out int createOptionSetResult); // TODO I Hate that this returns the datablob lol. Break this method up!
+		if (createOptionSetResult is 0 or 1)
+			return createOptionSetResult;
+		int initializeApiResult = InitializeApi (ref dataBlob);
+		if (initializeApiResult is 0 or 1)
+			return initializeApiResult;
+		int initializeManagersResult = InitializeManagers (ref dataBlob);
+		if (initializeManagersResult is 0 or 1)
+			return initializeManagersResult;
+		// TODO needs a check for api
+		PopulateTypesAndStrongDictionaries( dataBlob.api, dataBlob.process_enums, out List<Type> types2, out List<Type> strong_dictionaries2);
+		PerformGenerate (ref dataBlob, types2, strong_dictionaries2);
 
-		var os = new OptionSet () {
-			{ "h|?|help", "Displays the help", v => show_help = true },
+		return 0;
+	}
+
+	private void PerformGenerate (ref DataBlob dataBlob, List<Type> types, List<Type> strong_dictionaries)
+	{
+		// Slit this here. Ideally, init handled in its own thing. We just create the generator object
+		// and call Go on it.
+		try {
+			var g =
+				new Generator (this, dataBlob.public_mode, dataBlob.external, dataBlob.debug, types.ToArray (), strong_dictionaries.ToArray ()) {
+					BaseDir = dataBlob.basedir ?? dataBlob.tmpdir,
+					ZeroCopyStrings = dataBlob.zero_copy,
+					InlineSelectors = dataBlob.inline_selectors ?? (CurrentPlatform != PlatformName.MacOSX),
+				};
+
+
+			g.Go ();
+			List<string> cargs = CreateCompilationArguments (dataBlob, g.GeneratedFiles);
+
+			if (dataBlob.generate_file_list is not null) {
+				using (var f = File.CreateText (dataBlob.generate_file_list)) {
+					foreach (var x in g.GeneratedFiles.OrderBy ((v) => v))
+						f.WriteLine (x);
+				}
+
+				return;
+			}
+
+			AddNFloatUsing (cargs, dataBlob.tmpdir);
+
+			Compile (cargs, 1000, dataBlob.tmpdir);
+		} finally {
+			if (dataBlob.delete_temp)
+				Directory.Delete (dataBlob.tmpdir, true);
+		}
+	}
+
+	private List<string> CreateCompilationArguments (DataBlob dataBlob, IEnumerable<string> generatedFiles)
+	{
+		List<string> cargs = new();
+		if (dataBlob.unsafef)
+			cargs.Add ("-unsafe");
+		cargs.Add ("-target:library");
+		cargs.Add ("-out:" + outfile);
+		foreach (var def in dataBlob.defines)
+			cargs.Add ("-define:" + def);
+#if NET
+			cargs.Add ("-define:NET");
+#endif
+		cargs.AddRange (generatedFiles);
+		cargs.AddRange (dataBlob.core_sources);
+		cargs.AddRange (dataBlob.extra_sources);
+		cargs.AddRange (dataBlob.refs);
+		cargs.Add ("-r:" + baselibdll);
+		cargs.AddRange (dataBlob.resources);
+		if (dataBlob.nostdlib) {
+			cargs.Add ("-nostdlib");
+			cargs.Add ("-noconfig");
+		}
+
+		if (!string.IsNullOrEmpty (Path.GetDirectoryName (baselibdll)))
+			cargs.Add ("-lib:" + Path.GetDirectoryName (baselibdll));
+
+		return cargs;
+	}
+
+	private DataBlob CreateOptionSet (string[] args, out int result)
+	{
+		DataBlob dataBlob = new();
+		 dataBlob.os = new OptionSet () {
+			{ "h|?|help", "Displays the help", v => dataBlob.show_help = true },
 			{ "a", "Include alpha bindings (Obsolete).", v => {}, true },
-			{ "outdir=", "Sets the output directory for the temporary binding files", v => { basedir = v; }},
+			{ "outdir=", "Sets the output directory for the temporary binding files", v => { dataBlob.basedir = v; }},
 			{ "o|out=", "Sets the name of the output library", v => outfile = v },
-			{ "tmpdir=", "Sets the working directory for temp files", v => { tmpdir = v; delete_temp = false; }},
-			{ "debug", "Generates a debugging build of the binding", v => debug = true },
-			{ "sourceonly=", "Only generates the source", v => generate_file_list = v },
-			{ "ns=", "Sets the namespace for storing helper classes", v => ns = v },
-			{ "unsafe", "Sets the unsafe flag for the build", v=> unsafef = true },
+			{ "tmpdir=", "Sets the working directory for temp files", v => { dataBlob.tmpdir = v; dataBlob.delete_temp = false; }},
+			{ "debug", "Generates a debugging build of the binding", v => dataBlob.debug = true },
+			{ "sourceonly=", "Only generates the source", v => dataBlob.generate_file_list = v },
+			{ "ns=", "Sets the namespace for storing helper classes", v => dataBlob.ns = v },
+			{ "unsafe", "Sets the unsafe flag for the build", v=> dataBlob.unsafef = true },
 			{ "core", "Use this to build product assemblies", v => BindThirdPartyLibrary = false },
 			{ "r|reference=", "Adds a reference", v => references.Add (v) },
 			{ "lib=", "Adds the directory to the search path for the compiler", v => libs.Add (v) },
@@ -272,24 +364,24 @@ public class BindingTouch : IDisposable {
 			},
 			{ "sdk=", "Sets the .NET SDK to use (Obsolete)", v => {}, true },
 			{ "new-style", "Build for Unified (Obsolete).", v => { Console.WriteLine ("The --new-style option is obsolete and ignored."); }, true},
-			{ "d=", "Defines a symbol", v => defines.Add (v) },
-			{ "api=", "Adds a API definition source file", v => api_sources.Add (v) },
-			{ "s=", "Adds a source file required to build the API", v => core_sources.Add (v) },
+			{ "d=", "Defines a symbol", v => dataBlob.defines.Add (v) },
+			{ "api=", "Adds a API definition source file", v => dataBlob.api_sources.Add (v) },
+			{ "s=", "Adds a source file required to build the API", v => dataBlob.core_sources.Add (v) },
 			{ "q", "Quiet", v => ErrorHelper.Verbosity-- },
 			{ "v", "Sets verbose mode", v => ErrorHelper.Verbosity++ },
-			{ "x=", "Adds the specified file to the build, used after the core files are compiled", v => extra_sources.Add (v) },
-			{ "e", "Generates smaller classes that can not be subclassed (previously called 'external mode')", v => external = true },
-			{ "p", "Sets private mode", v => public_mode = false },
+			{ "x=", "Adds the specified file to the build, used after the core files are compiled", v => dataBlob.extra_sources.Add (v) },
+			{ "e", "Generates smaller classes that can not be subclassed (previously called 'external mode')", v => dataBlob.external = true },
+			{ "p", "Sets private mode", v => dataBlob.public_mode = false },
 			{ "baselib=", "Sets the base library", v => baselibdll = v },
 			{ "attributelib=", "Sets the attribute library", v => attributedll = v },
-			{ "use-zero-copy", v=> zero_copy = true },
-			{ "nostdlib", "Does not reference mscorlib.dll library", l => nostdlib = true },
+			{ "use-zero-copy", v=> dataBlob.zero_copy = true },
+			{ "nostdlib", "Does not reference mscorlib.dll library", l => dataBlob.nostdlib = true },
 			{ "no-mono-path", "Launches compiler with empty MONO_PATH", l => { }, true },
 			{ "native-exception-marshalling", "Enable the marshalling support for Objective-C exceptions", (v) => { /* no-op */} },
 			{ "inline-selectors:", "If Selector.GetHandle is inlined and does not need to be cached (enabled by default in Xamarin.iOS, disabled in Xamarin.Mac)",
-				v => inline_selectors = string.Equals ("true", v, StringComparison.OrdinalIgnoreCase) || string.IsNullOrEmpty (v)
+				v => dataBlob.inline_selectors = string.Equals ("true", v, StringComparison.OrdinalIgnoreCase) || string.IsNullOrEmpty (v)
 			},
-			{ "process-enums", "Process enums as bindings, not external, types.", v => process_enums = true },
+			{ "process-enums", "Process enums as bindings, not external, types.", v => dataBlob.process_enums = true },
 			{ "link-with=,", "Link with a native library {0:FILE} to the binding, embedded as a resource named {1:ID}",
 				(path, id) => {
 					if (path is null || path.Length == 0)
@@ -298,11 +390,11 @@ public class BindingTouch : IDisposable {
 					if (id is null || id.Length == 0)
 						id = Path.GetFileName (path);
 
-					if (linkwith.Contains (id))
+					if (dataBlob.linkwith.Contains (id))
 						throw new Exception ("-link-with=FILE,ID cannot assign the same resource id to multiple libraries.");
 
-					resources.Add (string.Format ("-res:{0},{1}", path, id));
-					linkwith.Add (id);
+					dataBlob.resources.Add (string.Format ("-res:{0},{1}", path, id));
+					dataBlob.linkwith.Add (id);
 				}
 			},
 			{ "unified-full-profile", "Launches compiler pointing to XM Full Profile", l => { /* no-op*/ }, true },
@@ -341,47 +433,57 @@ public class BindingTouch : IDisposable {
 			{ "compiled-api-definition-assembly=", "An assembly with the compiled api definitions.", (v) => compiled_api_definition_assembly = v },
 			new Mono.Options.ResponseFileSource (),
 		};
-
+		
 		try {
-			sources = os.Parse (args);
+			dataBlob.sources = dataBlob.os.Parse (args);
 		} catch (Exception e) {
 			Console.Error.WriteLine ("{0}: {1}", ToolName, e.Message);
 			Console.Error.WriteLine ("see {0} --help for more information", ToolName);
-			return 1;
+			result = 1;
 		}
 
-		if (show_help) {
-			ShowHelp (os);
-			return 0;
+		if (dataBlob.show_help) {
+			ShowHelp (dataBlob.os);
+			result = 0;
 		}
 
-		nostdlib = Nostdlib();
+		result = 2; // TODO change this, I just want to get moving
 
-		if (sources.Count > 0) {
-			api_sources.Insert (0, sources [0]);
-			for (int i = 1; i < sources.Count; i++)
-				core_sources.Insert (i - 1, sources [i]);
+		return dataBlob;
+	}
+
+	// TODO: I think this and the other api stuff can be separated into its own class probably
+	private int InitializeApi (ref DataBlob dataBlob)
+	{
+		dataBlob.nostdlib = Nostdlib();
+
+		if (dataBlob.sources.Count > 0) {
+			dataBlob.api_sources.Insert (0, dataBlob.sources [0]);
+			for (int i = 1; i < dataBlob.sources.Count; i++)
+				dataBlob.core_sources.Insert (i - 1, dataBlob.sources [i]);
 		}
 
-		if (api_sources.Count == 0) {
+		if (dataBlob.api_sources.Count == 0) {
 			Console.WriteLine ("Error: no api file provided");
-			ShowHelp (os);
-			return 1;
+			ShowHelp (dataBlob.os);
+			return 1; 
 		}
 
-		if (tmpdir is null)
-			tmpdir = GetWorkDir ();
+		if (dataBlob.tmpdir is null)
+			dataBlob.tmpdir = GetWorkDir ();
 
-		string firstApiDefinitionName = Path.GetFileNameWithoutExtension (api_sources [0]);
-		firstApiDefinitionName = firstApiDefinitionName.Replace ('-', '_'); // This is not exhaustive, but common.
+		dataBlob.firstApiDefinitionName = Path.GetFileNameWithoutExtension (dataBlob.api_sources [0]);
+		dataBlob.firstApiDefinitionName = dataBlob.firstApiDefinitionName.Replace ('-', '_'); // This is not exhaustive, but common.
 		if (outfile is null)
-			outfile = firstApiDefinitionName + ".dll";
+			outfile = dataBlob.firstApiDefinitionName + ".dll";
 
-		var refs = references.Select ((v) => "-r:" + v);
-		var paths = libs.Select ((v) => "-lib:" + v);
+		dataBlob.refs = references.Select ((v) => "-r:" + v);
+		dataBlob.paths = libs.Select ((v) => "-lib:" + v);
 
 		try {
-			var tmpass = GetCompiledApiBindingsAssembly (tmpdir, refs, nostdlib, api_sources, core_sources, defines, paths);
+			var tmpass =
+				GetCompiledApiBindingsAssembly (dataBlob.tmpdir, dataBlob.refs, dataBlob.nostdlib, dataBlob.api_sources,
+					dataBlob.core_sources, dataBlob.defines, dataBlob.paths, ref dataBlob);
 			universe = new MetadataLoadContext (
 				new SearchPathsAssemblyResolver (
 					GetLibraryDirectories ().ToArray (),
@@ -389,32 +491,11 @@ public class BindingTouch : IDisposable {
 				"mscorlib"
 			);
 
-			if (!TryLoadApi (tmpass, out Assembly api) || !TryLoadApi (baselibdll, out Assembly baselib))
+			if (!TryLoadApi (tmpass, out dataBlob.api) || !TryLoadApi (baselibdll, out dataBlob.baselib))
 				return 1;
-
-			attributeManager ??= new AttributeManager (this);
-			Frameworks = new Frameworks (CurrentPlatform);
 
 			// Explicitly load our attribute library so that IKVM doesn't try (and fail) to find it.
 			universe.LoadFromAssemblyPath (GetAttributeLibraryPath ());
-
-			typeCache ??= new (universe, Frameworks, CurrentPlatform, api, universe.CoreAssembly, baselib, BindThirdPartyLibrary);
-			typeManager ??= new (this);
-
-			foreach (var linkWith in AttributeManager.GetCustomAttributes<LinkWithAttribute> (api)) {
-#if NET
-				if (string.IsNullOrEmpty (linkWith.LibraryName))
-#else
-				if (linkWith.LibraryName is null || string.IsNullOrEmpty (linkWith.LibraryName))
-#endif
-					continue;
-
-				if (!linkwith.Contains (linkWith.LibraryName)) {
-					Console.Error.WriteLine ("Missing native library {0}, please use `--link-with' to specify the path to this library.", linkWith.LibraryName);
-					return 1;
-				}
-			}
-
 			foreach (var r in references) {
 				// IKVM has a bug where it doesn't correctly compare assemblies, which means it
 				// can end up loading the same assembly (in particular any System.Runtime whose
@@ -436,73 +517,65 @@ public class BindingTouch : IDisposable {
 					}
 				}
 			}
+		} catch (Exception ex) {
+			ErrorHelper.Show (ex);
+		}
 
-			var types = new List<Type> ();
-			var strong_dictionaries = new List<Type> ();
-			foreach (var t in api.GetTypes ()) {
-				if ((process_enums && t.IsEnum) ||
-					AttributeManager.HasAttribute<BaseTypeAttribute> (t) ||
-					AttributeManager.HasAttribute<ProtocolAttribute> (t) ||
-					AttributeManager.HasAttribute<StaticAttribute> (t) ||
-					AttributeManager.HasAttribute<PartialAttribute> (t))
-					types.Add (t);
-				if (AttributeManager.HasAttribute<StrongDictionaryAttribute> (t))
-					strong_dictionaries.Add (t);
+		return 2;
+	}
+
+
+	private int InitializeManagers  (ref DataBlob dataBlob)
+	{
+			attributeManager ??= new AttributeManager (this);
+			Frameworks = new Frameworks (CurrentPlatform);
+			
+			// TODO we can create an instance of the attribute manager, and then call a static method from its class?
+			foreach (var linkWith in AttributeManager.GetCustomAttributes<LinkWithAttribute> (dataBlob.api)) {
+#if NET
+				if (string.IsNullOrEmpty (linkWith.LibraryName))
+#else
+				if (linkWith.LibraryName is null || string.IsNullOrEmpty (linkWith.LibraryName))
+#endif
+					continue;
+
+				if (!dataBlob.linkwith.Contains (linkWith.LibraryName)) {
+					Console.Error.WriteLine (
+						"Missing native library {0}, please use `--link-with' to specify the path to this library.",
+						linkWith.LibraryName);
+					return 1;
+				}
 			}
 
+			typeCache ??= new(universe, Frameworks, CurrentPlatform, dataBlob.api, universe.CoreAssembly, dataBlob.baselib,
+				BindThirdPartyLibrary);
+			typeManager ??= new(this);
+			
 			namespaceManager ??= new NamespaceManager (
 				CurrentPlatform,
-				ns ?? firstApiDefinitionName,
-				skipSystemDrawing
-			);
+				dataBlob.ns ?? dataBlob.firstApiDefinitionName,
+				skipSystemDrawing);
 
-			var g = new Generator (this, public_mode, external, debug, types.ToArray (), strong_dictionaries.ToArray ()) {
-				BaseDir = basedir ?? tmpdir,
-				ZeroCopyStrings = zero_copy,
-				InlineSelectors = inline_selectors ?? (CurrentPlatform != PlatformName.MacOSX),
-			};
+			// Perhaps the above is a method without output for types and strong-dictionaryies?
 
-			g.Go ();
+			return 2;
 
-			if (generate_file_list is not null) {
-				using (var f = File.CreateText (generate_file_list)) {
-					foreach (var x in g.GeneratedFiles.OrderBy ((v) => v))
-						f.WriteLine (x);
-				}
-				return 0;
-			}
+	}
 
-			var cargs = new List<string> ();
-			if (unsafef)
-				cargs.Add ("-unsafe");
-			cargs.Add ("-target:library");
-			cargs.Add ("-out:" + outfile);
-			foreach (var def in defines)
-				cargs.Add ("-define:" + def);
-#if NET
-			cargs.Add ("-define:NET");
-#endif
-			cargs.AddRange (g.GeneratedFiles);
-			cargs.AddRange (core_sources);
-			cargs.AddRange (extra_sources);
-			cargs.AddRange (refs);
-			cargs.Add ("-r:" + baselibdll);
-			cargs.AddRange (resources);
-			if (nostdlib) {
-				cargs.Add ("-nostdlib");
-				cargs.Add ("-noconfig");
-			}
-			if (!string.IsNullOrEmpty (Path.GetDirectoryName (baselibdll)))
-				cargs.Add ("-lib:" + Path.GetDirectoryName (baselibdll));
-
-			AddNFloatUsing (cargs, tmpdir);
-
-			Compile (cargs, 1000, tmpdir);
-		} finally {
-			if (delete_temp)
-				Directory.Delete (tmpdir, true);
+	private void PopulateTypesAndStrongDictionaries (Assembly api, bool process_enums, out List<Type> types, out List<Type> strong_dictionaries)
+	{
+		types = new List<Type> ();
+		strong_dictionaries = new List<Type> ();
+		foreach (var t in api.GetTypes ()) {
+			if ((process_enums && t.IsEnum) ||
+			    AttributeManager.HasAttribute<BaseTypeAttribute> (t) ||
+			    AttributeManager.HasAttribute<ProtocolAttribute> (t) ||
+			    AttributeManager.HasAttribute<StaticAttribute> (t) ||
+			    AttributeManager.HasAttribute<PartialAttribute> (t))
+				types.Add (t);
+			if (AttributeManager.HasAttribute<StrongDictionaryAttribute> (t))
+				strong_dictionaries.Add (t);
 		}
-		return 0;
 	}
 
 	bool TryLoadApi (string name, out Assembly api)
@@ -628,14 +701,8 @@ public class BindingTouch : IDisposable {
 		return nostdlib;
 	}
 
-	// If anything is modified in this function, check if the _CompileApiDefinitions MSBuild target needs to be updated as well.
-	string GetCompiledApiBindingsAssembly (string tmpdir, IEnumerable<string> refs, bool nostdlib, List<string> api_sources, List<string> core_sources, List<string> defines, IEnumerable<string> paths)
+	List<string> GetCompiledApiBindingsArgs (string tmpass, ref DataBlob dataBlob) // TODO what is tmpass??
 	{
-		if (!string.IsNullOrEmpty (compiled_api_definition_assembly))
-			return compiled_api_definition_assembly;
-
-		var tmpass = Path.Combine (tmpdir, "temp.dll");
-
 		// -nowarn:436 is to avoid conflicts in definitions between core.dll and the sources
 		// Keep source files at the end of the command line - csc will create TWO assemblies if any sources preceed the -out parameter
 		var cargs = new List<string> ();
@@ -646,25 +713,35 @@ public class BindingTouch : IDisposable {
 		cargs.Add ("-nowarn:436");
 		cargs.Add ("-out:" + tmpass);
 		cargs.Add ("-r:" + GetAttributeLibraryPath ());
-		cargs.AddRange (refs);
+		cargs.AddRange (dataBlob.refs);
 		cargs.Add ("-r:" + baselibdll);
-		foreach (var def in defines)
+		foreach (var def in dataBlob.defines)
 			cargs.Add ("-define:" + def);
 #if NET
 		cargs.Add ("-define:NET");
 #endif
-		cargs.AddRange (paths);
-		if (nostdlib) {
+		cargs.AddRange (dataBlob.paths);
+		if (dataBlob.nostdlib) {
 			cargs.Add ("-nostdlib");
 			cargs.Add ("-noconfig");
 		}
-		cargs.AddRange (api_sources);
-		cargs.AddRange (core_sources);
+		cargs.AddRange (dataBlob.api_sources);
+		cargs.AddRange (dataBlob.core_sources);
 		if (!string.IsNullOrEmpty (Path.GetDirectoryName (baselibdll)))
 			cargs.Add ("-lib:" + Path.GetDirectoryName (baselibdll));
 
-		AddNFloatUsing (cargs, tmpdir);
+		return cargs;
+	}
 
+	// If anything is modified in this function, check if the _CompileApiDefinitions MSBuild target needs to be updated as well.
+	string GetCompiledApiBindingsAssembly (string tmpdir, IEnumerable<string> refs, bool nostdlib, List<string> api_sources, List<string> core_sources, List<string> defines, IEnumerable<string> paths, ref DataBlob dataBlob)
+	{
+		if (!string.IsNullOrEmpty (compiled_api_definition_assembly))
+			return compiled_api_definition_assembly;
+
+		var tmpass = Path.Combine (tmpdir, "temp.dll");
+		List<string> cargs = GetCompiledApiBindingsArgs (tmpass, ref dataBlob);
+		AddNFloatUsing (cargs, tmpdir);
 		Compile (cargs, 2, tmpdir);
 
 		return tmpass;
