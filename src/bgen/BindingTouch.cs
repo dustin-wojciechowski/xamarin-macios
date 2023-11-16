@@ -225,75 +225,39 @@ public class BindingTouch : IDisposable {
 		return touch.Main3 (args);
 	}
 
-	// TODO Either break up data blob or try to just pass its members and avoid passing the ojbect as much as possible
-	public class DataBlob {
-		public bool show_help = false;
-		public bool zero_copy = false;
-		public string? basedir = null;
-		public string? tmpdir = null;
-		public string? ns = null;
-		public bool delete_temp = true, debug = false;
-		public bool unsafef = true;
-		public bool external = false;
-		public bool public_mode = true;
-		public bool nostdlib = false;
-		public bool? inline_selectors = null;
-		public List<string> sources;
-		public List<string> resources = new List<string> ();
-		public List<string> linkwith = new List<string> ();
-		public List<string> api_sources = new List<string> ();
-		public List<string> core_sources = new List<string> ();
-		public List<string> extra_sources = new List<string> ();
-		public List<string> defines = new List<string> ();
-		public string? generate_file_list = null;
-		public bool process_enums = false;
-		public Assembly api;
-		public Assembly baselib;
-		public string firstApiDefinitionName;
-
-		public IEnumerable<string> refs;
-		public IEnumerable<string> paths;
-		public OptionSet os;
-	}
-
 	int Main3 (string [] args)
 	{
 		// TODO there's a lot of logic where code is just returning 1 or 0 immediately. I need to work on the control flow for these. They should probably just throw an exception up based on where they are.
 		ErrorHelper.ClearWarningLevels ();
-		DataBlob dataBlob = CreateOptionSet (args, out int createOptionSetResult); // TODO I Hate that this returns the datablob lol. Break this method up!
-		if (createOptionSetResult is 0 or 1)
-			return createOptionSetResult;
-		int initializeApiResult = InitializeApi (ref dataBlob);
-		if (initializeApiResult is 0 or 1)
-			return initializeApiResult;
-		int initializeManagersResult = InitializeManagers (ref dataBlob);
-		if (initializeManagersResult is 0 or 1)
-			return initializeManagersResult;
-		// TODO needs a check for api
-		PopulateTypesAndStrongDictionaries( dataBlob.api, dataBlob.process_enums, out List<Type> types2, out List<Type> strong_dictionaries2);
-		PerformGenerate (ref dataBlob, types2, strong_dictionaries2);
+		BindingTouchConfig bindingTouchConfig = new();
+		// TODO CreateOptionSet creates that value in the datablob. Is that really necessary?
+		if (!CreateOptionSet (bindingTouchConfig, args) || !InitializeApi (ref bindingTouchConfig) || !InitializeManagers (ref bindingTouchConfig) || !TestLinkWith (bindingTouchConfig))
+			return 1; // TODO Notate in the PR every time program returns 1 or 0.
+
+		PopulateTypesAndStrongDictionaries( bindingTouchConfig.api, bindingTouchConfig.process_enums, out List<Type> types2, out List<Type> strong_dictionaries2);
+		PerformGenerate (ref bindingTouchConfig, types2, strong_dictionaries2);
 
 		return 0;
 	}
 
-	private void PerformGenerate (ref DataBlob dataBlob, List<Type> types, List<Type> strong_dictionaries)
+	private void PerformGenerate (ref BindingTouchConfig bindingTouchConfig, List<Type> types, List<Type> strong_dictionaries)
 	{
 		// Slit this here. Ideally, init handled in its own thing. We just create the generator object
 		// and call Go on it.
 		try {
 			var g =
-				new Generator (this, dataBlob.public_mode, dataBlob.external, dataBlob.debug, types.ToArray (), strong_dictionaries.ToArray ()) {
-					BaseDir = dataBlob.basedir ?? dataBlob.tmpdir,
-					ZeroCopyStrings = dataBlob.zero_copy,
-					InlineSelectors = dataBlob.inline_selectors ?? (CurrentPlatform != PlatformName.MacOSX),
+				new Generator (this, bindingTouchConfig.public_mode, bindingTouchConfig.external, bindingTouchConfig.debug, types.ToArray (), strong_dictionaries.ToArray ()) {
+					BaseDir = bindingTouchConfig.basedir ?? bindingTouchConfig.tmpdir,
+					ZeroCopyStrings = bindingTouchConfig.zero_copy,
+					InlineSelectors = bindingTouchConfig.inline_selectors ?? (CurrentPlatform != PlatformName.MacOSX),
 				};
 
 
 			g.Go ();
-			List<string> cargs = CreateCompilationArguments (dataBlob, g.GeneratedFiles);
+			List<string> cargs = CreateCompilationArguments (bindingTouchConfig, g.GeneratedFiles);
 
-			if (dataBlob.generate_file_list is not null) {
-				using (var f = File.CreateText (dataBlob.generate_file_list)) {
+			if (bindingTouchConfig.generate_file_list is not null) {
+				using (var f = File.CreateText (bindingTouchConfig.generate_file_list)) {
 					foreach (var x in g.GeneratedFiles.OrderBy ((v) => v))
 						f.WriteLine (x);
 				}
@@ -301,34 +265,35 @@ public class BindingTouch : IDisposable {
 				return;
 			}
 
-			AddNFloatUsing (cargs, dataBlob.tmpdir);
+			AddNFloatUsing (cargs, bindingTouchConfig.tmpdir);
 
-			Compile (cargs, 1000, dataBlob.tmpdir);
+			Compile (cargs, 1000, bindingTouchConfig.tmpdir);
 		} finally {
-			if (dataBlob.delete_temp)
-				Directory.Delete (dataBlob.tmpdir, true);
+			if (bindingTouchConfig.delete_temp)
+				Directory.Delete (bindingTouchConfig.tmpdir, true);
 		}
 	}
 
-	private List<string> CreateCompilationArguments (DataBlob dataBlob, IEnumerable<string> generatedFiles)
+	// TODO Want this to be in BindingTouchConfig or even its own thing, but it's coupled to even more class variables
+	private List<string> CreateCompilationArguments (BindingTouchConfig bindingTouchConfig, IEnumerable<string> generatedFiles)
 	{
 		List<string> cargs = new();
-		if (dataBlob.unsafef)
+		if (bindingTouchConfig.unsafef)
 			cargs.Add ("-unsafe");
 		cargs.Add ("-target:library");
 		cargs.Add ("-out:" + outfile);
-		foreach (var def in dataBlob.defines)
+		foreach (var def in bindingTouchConfig.defines)
 			cargs.Add ("-define:" + def);
 #if NET
 			cargs.Add ("-define:NET");
 #endif
 		cargs.AddRange (generatedFiles);
-		cargs.AddRange (dataBlob.core_sources);
-		cargs.AddRange (dataBlob.extra_sources);
-		cargs.AddRange (dataBlob.refs);
+		cargs.AddRange (bindingTouchConfig.core_sources);
+		cargs.AddRange (bindingTouchConfig.extra_sources);
+		cargs.AddRange (bindingTouchConfig.refs);
 		cargs.Add ("-r:" + baselibdll);
-		cargs.AddRange (dataBlob.resources);
-		if (dataBlob.nostdlib) {
+		cargs.AddRange (bindingTouchConfig.resources);
+		if (bindingTouchConfig.nostdlib) {
 			cargs.Add ("-nostdlib");
 			cargs.Add ("-noconfig");
 		}
@@ -339,19 +304,19 @@ public class BindingTouch : IDisposable {
 		return cargs;
 	}
 
-	private DataBlob CreateOptionSet (string[] args, out int result)
+	private bool CreateOptionSet ( BindingTouchConfig bindingTouchConfig, string[] args)
 	{
-		DataBlob dataBlob = new();
-		 dataBlob.os = new OptionSet () {
-			{ "h|?|help", "Displays the help", v => dataBlob.show_help = true },
+		//BindingTouchConfig bindingTouchConfig = ogBlob;
+		 bindingTouchConfig.os = new OptionSet () {
+			{ "h|?|help", "Displays the help", v => bindingTouchConfig.show_help = true },
 			{ "a", "Include alpha bindings (Obsolete).", v => {}, true },
-			{ "outdir=", "Sets the output directory for the temporary binding files", v => { dataBlob.basedir = v; }},
+			{ "outdir=", "Sets the output directory for the temporary binding files", v => { bindingTouchConfig.basedir = v; }},
 			{ "o|out=", "Sets the name of the output library", v => outfile = v },
-			{ "tmpdir=", "Sets the working directory for temp files", v => { dataBlob.tmpdir = v; dataBlob.delete_temp = false; }},
-			{ "debug", "Generates a debugging build of the binding", v => dataBlob.debug = true },
-			{ "sourceonly=", "Only generates the source", v => dataBlob.generate_file_list = v },
-			{ "ns=", "Sets the namespace for storing helper classes", v => dataBlob.ns = v },
-			{ "unsafe", "Sets the unsafe flag for the build", v=> dataBlob.unsafef = true },
+			{ "tmpdir=", "Sets the working directory for temp files", v => { bindingTouchConfig.tmpdir = v; bindingTouchConfig.delete_temp = false; }},
+			{ "debug", "Generates a debugging build of the binding", v => bindingTouchConfig.debug = true },
+			{ "sourceonly=", "Only generates the source", v => bindingTouchConfig.generate_file_list = v },
+			{ "ns=", "Sets the namespace for storing helper classes", v => bindingTouchConfig.ns = v },
+			{ "unsafe", "Sets the unsafe flag for the build", v=> bindingTouchConfig.unsafef = true },
 			{ "core", "Use this to build product assemblies", v => BindThirdPartyLibrary = false },
 			{ "r|reference=", "Adds a reference", v => references.Add (v) },
 			{ "lib=", "Adds the directory to the search path for the compiler", v => libs.Add (v) },
@@ -364,24 +329,24 @@ public class BindingTouch : IDisposable {
 			},
 			{ "sdk=", "Sets the .NET SDK to use (Obsolete)", v => {}, true },
 			{ "new-style", "Build for Unified (Obsolete).", v => { Console.WriteLine ("The --new-style option is obsolete and ignored."); }, true},
-			{ "d=", "Defines a symbol", v => dataBlob.defines.Add (v) },
-			{ "api=", "Adds a API definition source file", v => dataBlob.api_sources.Add (v) },
-			{ "s=", "Adds a source file required to build the API", v => dataBlob.core_sources.Add (v) },
+			{ "d=", "Defines a symbol", v => bindingTouchConfig.defines.Add (v) },
+			{ "api=", "Adds a API definition source file", v => bindingTouchConfig.api_sources.Add (v) },
+			{ "s=", "Adds a source file required to build the API", v => bindingTouchConfig.core_sources.Add (v) },
 			{ "q", "Quiet", v => ErrorHelper.Verbosity-- },
 			{ "v", "Sets verbose mode", v => ErrorHelper.Verbosity++ },
-			{ "x=", "Adds the specified file to the build, used after the core files are compiled", v => dataBlob.extra_sources.Add (v) },
-			{ "e", "Generates smaller classes that can not be subclassed (previously called 'external mode')", v => dataBlob.external = true },
-			{ "p", "Sets private mode", v => dataBlob.public_mode = false },
+			{ "x=", "Adds the specified file to the build, used after the core files are compiled", v => bindingTouchConfig.extra_sources.Add (v) },
+			{ "e", "Generates smaller classes that can not be subclassed (previously called 'external mode')", v => bindingTouchConfig.external = true },
+			{ "p", "Sets private mode", v => bindingTouchConfig.public_mode = false },
 			{ "baselib=", "Sets the base library", v => baselibdll = v },
 			{ "attributelib=", "Sets the attribute library", v => attributedll = v },
-			{ "use-zero-copy", v=> dataBlob.zero_copy = true },
-			{ "nostdlib", "Does not reference mscorlib.dll library", l => dataBlob.nostdlib = true },
+			{ "use-zero-copy", v=> bindingTouchConfig.zero_copy = true },
+			{ "nostdlib", "Does not reference mscorlib.dll library", l => bindingTouchConfig.nostdlib = true },
 			{ "no-mono-path", "Launches compiler with empty MONO_PATH", l => { }, true },
 			{ "native-exception-marshalling", "Enable the marshalling support for Objective-C exceptions", (v) => { /* no-op */} },
 			{ "inline-selectors:", "If Selector.GetHandle is inlined and does not need to be cached (enabled by default in Xamarin.iOS, disabled in Xamarin.Mac)",
-				v => dataBlob.inline_selectors = string.Equals ("true", v, StringComparison.OrdinalIgnoreCase) || string.IsNullOrEmpty (v)
+				v => bindingTouchConfig.inline_selectors = string.Equals ("true", v, StringComparison.OrdinalIgnoreCase) || string.IsNullOrEmpty (v)
 			},
-			{ "process-enums", "Process enums as bindings, not external, types.", v => dataBlob.process_enums = true },
+			{ "process-enums", "Process enums as bindings, not external, types.", v => bindingTouchConfig.process_enums = true },
 			{ "link-with=,", "Link with a native library {0:FILE} to the binding, embedded as a resource named {1:ID}",
 				(path, id) => {
 					if (path is null || path.Length == 0)
@@ -390,11 +355,11 @@ public class BindingTouch : IDisposable {
 					if (id is null || id.Length == 0)
 						id = Path.GetFileName (path);
 
-					if (dataBlob.linkwith.Contains (id))
+					if (bindingTouchConfig.linkwith.Contains (id))
 						throw new Exception ("-link-with=FILE,ID cannot assign the same resource id to multiple libraries.");
 
-					dataBlob.resources.Add (string.Format ("-res:{0},{1}", path, id));
-					dataBlob.linkwith.Add (id);
+					bindingTouchConfig.resources.Add (string.Format ("-res:{0},{1}", path, id));
+					bindingTouchConfig.linkwith.Add (id);
 				}
 			},
 			{ "unified-full-profile", "Launches compiler pointing to XM Full Profile", l => { /* no-op*/ }, true },
@@ -435,55 +400,55 @@ public class BindingTouch : IDisposable {
 		};
 		
 		try {
-			dataBlob.sources = dataBlob.os.Parse (args);
+			bindingTouchConfig.sources = bindingTouchConfig.os.Parse (args);
 		} catch (Exception e) {
-			Console.Error.WriteLine ("{0}: {1}", ToolName, e.Message);
+			Console.Error.WriteLine ("{0}: {1}", ToolName, e.Message); // TODO: Are these going to correctly appear in the messages screen?
 			Console.Error.WriteLine ("see {0} --help for more information", ToolName);
-			result = 1;
+			return false;
 		}
 
-		if (dataBlob.show_help) {
-			ShowHelp (dataBlob.os);
-			result = 0;
+		if (bindingTouchConfig.show_help) {
+			ShowHelp (bindingTouchConfig.os);
+			return false;
 		}
 
-		result = 2; // TODO change this, I just want to get moving
+		return true; // TODO change this, I just want to get moving
 
-		return dataBlob;
+		//return bindingTouchConfig;
 	}
 
 	// TODO: I think this and the other api stuff can be separated into its own class probably
-	private int InitializeApi (ref DataBlob dataBlob)
+	private bool InitializeApi (ref BindingTouchConfig bindingTouchConfig)
 	{
-		dataBlob.nostdlib = Nostdlib();
+		bindingTouchConfig.nostdlib = Nostdlib();
 
-		if (dataBlob.sources.Count > 0) {
-			dataBlob.api_sources.Insert (0, dataBlob.sources [0]);
-			for (int i = 1; i < dataBlob.sources.Count; i++)
-				dataBlob.core_sources.Insert (i - 1, dataBlob.sources [i]);
+		if (bindingTouchConfig.sources.Count > 0) {
+			bindingTouchConfig.api_sources.Insert (0, bindingTouchConfig.sources [0]);
+			for (int i = 1; i < bindingTouchConfig.sources.Count; i++)
+				bindingTouchConfig.core_sources.Insert (i - 1, bindingTouchConfig.sources [i]);
 		}
 
-		if (dataBlob.api_sources.Count == 0) {
+		if (bindingTouchConfig.api_sources.Count == 0) {
 			Console.WriteLine ("Error: no api file provided");
-			ShowHelp (dataBlob.os);
-			return 1; 
+			ShowHelp (bindingTouchConfig.os);
+			return false;
 		}
 
-		if (dataBlob.tmpdir is null)
-			dataBlob.tmpdir = GetWorkDir ();
+		if (bindingTouchConfig.tmpdir is null)
+			bindingTouchConfig.tmpdir = GetWorkDir ();
 
-		dataBlob.firstApiDefinitionName = Path.GetFileNameWithoutExtension (dataBlob.api_sources [0]);
-		dataBlob.firstApiDefinitionName = dataBlob.firstApiDefinitionName.Replace ('-', '_'); // This is not exhaustive, but common.
+		bindingTouchConfig.firstApiDefinitionName = Path.GetFileNameWithoutExtension (bindingTouchConfig.api_sources [0]);
+		bindingTouchConfig.firstApiDefinitionName = bindingTouchConfig.firstApiDefinitionName.Replace ('-', '_'); // This is not exhaustive, but common.
 		if (outfile is null)
-			outfile = dataBlob.firstApiDefinitionName + ".dll";
+			outfile = bindingTouchConfig.firstApiDefinitionName + ".dll";
 
-		dataBlob.refs = references.Select ((v) => "-r:" + v);
-		dataBlob.paths = libs.Select ((v) => "-lib:" + v);
+		bindingTouchConfig.refs = references.Select ((v) => "-r:" + v);
+		bindingTouchConfig.paths = libs.Select ((v) => "-lib:" + v);
 
 		try {
 			var tmpass =
-				GetCompiledApiBindingsAssembly (dataBlob.tmpdir, dataBlob.refs, dataBlob.nostdlib, dataBlob.api_sources,
-					dataBlob.core_sources, dataBlob.defines, dataBlob.paths, ref dataBlob);
+				GetCompiledApiBindingsAssembly (bindingTouchConfig.tmpdir, bindingTouchConfig.refs, bindingTouchConfig.nostdlib, bindingTouchConfig.api_sources,
+					bindingTouchConfig.core_sources, bindingTouchConfig.defines, bindingTouchConfig.paths, ref bindingTouchConfig);
 			universe = new MetadataLoadContext (
 				new SearchPathsAssemblyResolver (
 					GetLibraryDirectories ().ToArray (),
@@ -491,8 +456,8 @@ public class BindingTouch : IDisposable {
 				"mscorlib"
 			);
 
-			if (!TryLoadApi (tmpass, out dataBlob.api) || !TryLoadApi (baselibdll, out dataBlob.baselib))
-				return 1;
+			if (!TryLoadApi (tmpass, out bindingTouchConfig.api) || !TryLoadApi (baselibdll, out bindingTouchConfig.baselib))
+				return false;
 
 			// Explicitly load our attribute library so that IKVM doesn't try (and fail) to find it.
 			universe.LoadFromAssemblyPath (GetAttributeLibraryPath ());
@@ -521,45 +486,49 @@ public class BindingTouch : IDisposable {
 			ErrorHelper.Show (ex);
 		}
 
-		return 2;
+		return true;
 	}
 
-
-	private int InitializeManagers  (ref DataBlob dataBlob)
+	private bool InitializeManagers  (ref BindingTouchConfig bindingTouchConfig)
 	{
 			attributeManager ??= new AttributeManager (this);
 			Frameworks = new Frameworks (CurrentPlatform);
 			
-			// TODO we can create an instance of the attribute manager, and then call a static method from its class?
-			foreach (var linkWith in AttributeManager.GetCustomAttributes<LinkWithAttribute> (dataBlob.api)) {
-#if NET
-				if (string.IsNullOrEmpty (linkWith.LibraryName))
-#else
-				if (linkWith.LibraryName is null || string.IsNullOrEmpty (linkWith.LibraryName))
-#endif
-					continue;
+			
 
-				if (!dataBlob.linkwith.Contains (linkWith.LibraryName)) {
-					Console.Error.WriteLine (
-						"Missing native library {0}, please use `--link-with' to specify the path to this library.",
-						linkWith.LibraryName);
-					return 1;
-				}
-			}
-
-			typeCache ??= new(universe, Frameworks, CurrentPlatform, dataBlob.api, universe.CoreAssembly, dataBlob.baselib,
+			typeCache ??= new(universe, Frameworks, CurrentPlatform, bindingTouchConfig.api, universe.CoreAssembly, bindingTouchConfig.baselib,
 				BindThirdPartyLibrary);
 			typeManager ??= new(this);
 			
 			namespaceManager ??= new NamespaceManager (
 				CurrentPlatform,
-				dataBlob.ns ?? dataBlob.firstApiDefinitionName,
+				bindingTouchConfig.ns ?? bindingTouchConfig.firstApiDefinitionName,
 				skipSystemDrawing);
 
 			// Perhaps the above is a method without output for types and strong-dictionaryies?
 
-			return 2;
+			return true;
+	}
 
+	private bool TestLinkWith (BindingTouchConfig bindingTouchConfig)
+	{
+		foreach (var linkWith in AttributeManager.GetCustomAttributes<LinkWithAttribute> (bindingTouchConfig.api)) {
+#if NET
+				if (string.IsNullOrEmpty (linkWith.LibraryName))
+#else
+			if (linkWith.LibraryName is null || string.IsNullOrEmpty (linkWith.LibraryName))
+#endif
+				continue;
+
+			if (!bindingTouchConfig.linkwith.Contains (linkWith.LibraryName)) {
+				Console.Error.WriteLine (
+					"Missing native library {0}, please use `--link-with' to specify the path to this library.",
+					linkWith.LibraryName);
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	private void PopulateTypesAndStrongDictionaries (Assembly api, bool process_enums, out List<Type> types, out List<Type> strong_dictionaries)
@@ -701,7 +670,7 @@ public class BindingTouch : IDisposable {
 		return nostdlib;
 	}
 
-	List<string> GetCompiledApiBindingsArgs (string tmpass, ref DataBlob dataBlob) // TODO what is tmpass??
+	List<string> GetCompiledApiBindingsArgs (string tmpass, ref BindingTouchConfig bindingTouchConfig) // TODO what is tmpass??
 	{
 		// -nowarn:436 is to avoid conflicts in definitions between core.dll and the sources
 		// Keep source files at the end of the command line - csc will create TWO assemblies if any sources preceed the -out parameter
@@ -713,20 +682,20 @@ public class BindingTouch : IDisposable {
 		cargs.Add ("-nowarn:436");
 		cargs.Add ("-out:" + tmpass);
 		cargs.Add ("-r:" + GetAttributeLibraryPath ());
-		cargs.AddRange (dataBlob.refs);
+		cargs.AddRange (bindingTouchConfig.refs);
 		cargs.Add ("-r:" + baselibdll);
-		foreach (var def in dataBlob.defines)
+		foreach (var def in bindingTouchConfig.defines)
 			cargs.Add ("-define:" + def);
 #if NET
 		cargs.Add ("-define:NET");
 #endif
-		cargs.AddRange (dataBlob.paths);
-		if (dataBlob.nostdlib) {
+		cargs.AddRange (bindingTouchConfig.paths);
+		if (bindingTouchConfig.nostdlib) {
 			cargs.Add ("-nostdlib");
 			cargs.Add ("-noconfig");
 		}
-		cargs.AddRange (dataBlob.api_sources);
-		cargs.AddRange (dataBlob.core_sources);
+		cargs.AddRange (bindingTouchConfig.api_sources);
+		cargs.AddRange (bindingTouchConfig.core_sources);
 		if (!string.IsNullOrEmpty (Path.GetDirectoryName (baselibdll)))
 			cargs.Add ("-lib:" + Path.GetDirectoryName (baselibdll));
 
@@ -734,13 +703,13 @@ public class BindingTouch : IDisposable {
 	}
 
 	// If anything is modified in this function, check if the _CompileApiDefinitions MSBuild target needs to be updated as well.
-	string GetCompiledApiBindingsAssembly (string tmpdir, IEnumerable<string> refs, bool nostdlib, List<string> api_sources, List<string> core_sources, List<string> defines, IEnumerable<string> paths, ref DataBlob dataBlob)
+	string GetCompiledApiBindingsAssembly (string tmpdir, IEnumerable<string> refs, bool nostdlib, List<string> api_sources, List<string> core_sources, List<string> defines, IEnumerable<string> paths, ref BindingTouchConfig bindingTouchConfig)
 	{
 		if (!string.IsNullOrEmpty (compiled_api_definition_assembly))
 			return compiled_api_definition_assembly;
 
 		var tmpass = Path.Combine (tmpdir, "temp.dll");
-		List<string> cargs = GetCompiledApiBindingsArgs (tmpass, ref dataBlob);
+		List<string> cargs = GetCompiledApiBindingsArgs (tmpass, ref bindingTouchConfig);
 		AddNFloatUsing (cargs, tmpdir);
 		Compile (cargs, 2, tmpdir);
 
