@@ -231,8 +231,9 @@ public class BindingTouch : IDisposable {
 		ErrorHelper.ClearWarningLevels ();
 		BindingTouchConfig bindingTouchConfig = new();
 		// TODO CreateOptionSet creates that value in the datablob. Is that really necessary?
-		if (!CreateOptionSet (bindingTouchConfig, args) || !InitializeApi (ref bindingTouchConfig) || !InitializeManagers (ref bindingTouchConfig) || !TestLinkWith (bindingTouchConfig))
-			return 1; // TODO Notate in the PR every time program returns 1 or 0.
+		if (!CreateOptionSet (bindingTouchConfig, args) || !InitializeApi (ref bindingTouchConfig) ||
+		    !InitializeManagers (ref bindingTouchConfig) || !TestLinkWith (bindingTouchConfig))
+			return 1; // TODO Notate in the PR every time program returns 1 or 0. Also, highly disagreeable to have this "Main3" return numbers
 
 		PopulateTypesAndStrongDictionaries( bindingTouchConfig.api, bindingTouchConfig.process_enums, out List<Type> types2, out List<Type> strong_dictionaries2);
 		PerformGenerate (ref bindingTouchConfig, types2, strong_dictionaries2);
@@ -306,7 +307,6 @@ public class BindingTouch : IDisposable {
 
 	private bool CreateOptionSet ( BindingTouchConfig bindingTouchConfig, string[] args)
 	{
-		//BindingTouchConfig bindingTouchConfig = ogBlob;
 		 bindingTouchConfig.os = new OptionSet () {
 			{ "h|?|help", "Displays the help", v => bindingTouchConfig.show_help = true },
 			{ "a", "Include alpha bindings (Obsolete).", v => {}, true },
@@ -493,8 +493,6 @@ public class BindingTouch : IDisposable {
 	{
 			attributeManager ??= new AttributeManager (this);
 			Frameworks = new Frameworks (CurrentPlatform);
-			
-			
 
 			typeCache ??= new(universe, Frameworks, CurrentPlatform, bindingTouchConfig.api, universe.CoreAssembly, bindingTouchConfig.baselib,
 				BindThirdPartyLibrary);
