@@ -76,7 +76,7 @@ parameters:
 - name: simTestsConfigurations
   type: object
   default: [
-    'bcl',
+    # disabled by default # 'bcl',
     'cecil',
     'dotnettests',
     'fsharp',
@@ -147,7 +147,7 @@ stages:
 - ${{ if eq(parameters.runGovernanceTests, true) }}:
   - stage: governance_checks
     displayName: '${{ parameters.stageDisplayNamePrefix }}Governance Checks'
-    dependsOn: ${{ parameters.dependsOn }}
+    dependsOn: build_packages
     ${{ if and(ne(parameters.dependsOn, ''), ne(parameters.dependsOnResult, '')) }}:
       condition: eq(dependencies.${{ parameters.dependsOn }}.result, '${{ parameters.dependsOnResult }}')
     jobs:
@@ -406,6 +406,8 @@ stages:
       displayName: '${{ parameters.stageDisplayNamePrefix }}Windows Integration Tests'
       pool: 'VSEng-Xamarin-Mac-Devices' # currently ignored until the VS team provides a real one
       statusContext: 'Windows Integration Tests'
+      gitHubToken: $(Github.Token)
+      xqaCertPass: $(xqa--certificates--password)
 
 - ${{ if eq(parameters.runSamples, true) }}:
   # TODO: Not the real step

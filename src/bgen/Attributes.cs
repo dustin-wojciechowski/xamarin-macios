@@ -52,6 +52,7 @@ public class ForcedTypeAttribute : Attribute {
 	public bool Owns;
 }
 
+#if !XAMCORE_5_0
 // Used to flag a type as needing to be turned into a protocol on output for Unified
 // For example:
 //   [Protocolize, Wrap ("WeakDelegate")]
@@ -66,6 +67,7 @@ public class ForcedTypeAttribute : Attribute {
 //
 // To protocolize newer versions, use [Protocolize (3)] for XAMCORE_3_0, [Protocolize (4)] for NET, etc
 //
+[Obsolete ("This attribute no longer has any effect; do not use")]
 public class ProtocolizeAttribute : Attribute {
 	public ProtocolizeAttribute ()
 	{
@@ -79,6 +81,7 @@ public class ProtocolizeAttribute : Attribute {
 
 	public int Version { get; set; }
 }
+#endif
 
 // Used to mark if a type is not a wrapper type.
 public class SyntheticAttribute : Attribute {
@@ -246,14 +249,17 @@ public class InternalAttribute : Attribute {
 	public InternalAttribute () { }
 }
 
+#if !XAMCORE_5_0
 // This is a conditional "Internal" method, that flags methods as internal only when
 // compiling with Unified, otherwise, this is ignored.
 //
 // In addition, UnifiedInternal members automatically get an underscore after their name
 // so [UnifiedInternal] void Foo(); becomes "Foo_()"
+[Obsolete ("This attribute no longer has any effect; do no use")]
 public class UnifiedInternalAttribute : Attribute {
 	public UnifiedInternalAttribute () { }
 }
+#endif
 
 // When applied to a method or property, flags the resulting generated code as internal
 public sealed class ProtectedAttribute : Attribute {

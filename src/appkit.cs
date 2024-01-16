@@ -210,8 +210,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSAnimationDelegate Delegate { get; set; }
+		INSAnimationDelegate Delegate { get; set; }
 
 		[Export ("progressMarks", ArgumentSemantic.Copy)]
 		NSNumber [] ProgressMarks { get; set; }
@@ -249,6 +248,8 @@ namespace AppKit {
 		[Field ("NSAnimationTriggerOrderOut")]
 		NSString TriggerOrderOut { get; }
 	}
+
+	interface INSAnimationDelegate { }
 
 	[NoiOS]
 	[NoMacCatalyst]
@@ -347,8 +348,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSAlertDelegate Delegate { get; set; }
+		INSAlertDelegate Delegate { get; set; }
 
 		[Export ("showsSuppressionButton")]
 		bool ShowsSuppressionButton { get; set; }
@@ -376,6 +376,8 @@ namespace AppKit {
 		[Export ("window")]
 		NSPanel Window { get; }
 	}
+
+	interface INSAlertDelegate { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
@@ -490,8 +492,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSApplicationDelegate Delegate { get; set; }
+		INSApplicationDelegate Delegate { get; set; }
 
 		[Export ("context")]
 		[Deprecated (PlatformName.MacOSX, 10, 12, message: "This method always returns null. If you need access to the current drawing context, use NSGraphicsContext.CurrentContext inside of a draw operation.")]
@@ -872,6 +873,23 @@ namespace AppKit {
 		[Mac (14, 0)]
 		[Export ("yieldActivationToApplicationWithBundleIdentifier:")]
 		void YieldActivation (string toApplicationWithBundleIdentifier);
+
+		// From the NSUserInterfaceItemSearching category
+		[Export ("registerUserInterfaceItemSearchHandler:")]
+		void RegisterUserInterfaceItemSearchHandler (INSUserInterfaceItemSearching handler);
+
+		[Export ("unregisterUserInterfaceItemSearchHandler:")]
+		void UnregisterUserInterfaceItemSearchHandler (INSUserInterfaceItemSearching handler);
+
+		[Export ("searchString:inUserInterfaceItemString:searchRange:foundRange:")]
+		bool SearchStringInUserInterface (string searchString, string stringToSearch, NSRange searchRange, out NSRange foundRange);
+
+		// From the NSApplicationHelpExtension category
+		[Export ("activateContextHelpMode:")]
+		void ActivateContextHelpMode ([NullAllowed] NSObject sender);
+
+		[Export ("showHelp:")]
+		void ShowHelp ([NullAllowed] NSObject sender);
 	}
 
 	[NoMacCatalyst]
@@ -923,6 +941,8 @@ namespace AppKit {
 #else
 	delegate void ContinueUserActivityRestorationHandler (NSObject [] restorableObjects);
 #endif
+
+	interface INSApplicationDelegate { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
@@ -1936,8 +1956,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSBrowserDelegate Delegate { get; set; }
+		INSBrowserDelegate Delegate { get; set; }
 
 		[Export ("reusesColumns")]
 		bool ReusesColumns { get; set; }
@@ -1984,6 +2003,8 @@ namespace AppKit {
 		[Export ("lastColumn")]
 		nint LastColumn { get; set; }
 	}
+
+	interface INSBrowserDelegate { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
@@ -2071,14 +2092,14 @@ namespace AppKit {
 #if NET
 		NSDragOperation ValidateDrop (NSBrowser browser, INSDraggingInfo info, ref nint row, ref nint column, ref NSBrowserDropOperation dropOperation);
 #else
-		NSDragOperation ValidateDrop (NSBrowser browser, [Protocolize (4)] NSDraggingInfo info, ref nint row, ref nint column, ref NSBrowserDropOperation dropOperation);
+		NSDragOperation ValidateDrop (NSBrowser browser, NSDraggingInfo info, ref nint row, ref nint column, ref NSBrowserDropOperation dropOperation);
 #endif
 
 		[Export ("browser:acceptDrop:atRow:column:dropOperation:")]
 #if NET
 		bool AcceptDrop (NSBrowser browser, INSDraggingInfo info, nint row, nint column, NSBrowserDropOperation dropOperation);
 #else
-		bool AcceptDrop (NSBrowser browser, [Protocolize (4)] NSDraggingInfo info, nint row, nint column, NSBrowserDropOperation dropOperation);
+		bool AcceptDrop (NSBrowser browser, NSDraggingInfo info, nint row, nint column, NSBrowserDropOperation dropOperation);
 #endif
 
 		[return: NullAllowed]
@@ -2911,8 +2932,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSCollectionViewDelegate Delegate { get; set; }
+		INSCollectionViewDelegate Delegate { get; set; }
 
 		[Export ("content", ArgumentSemantic.Copy)]
 		NSObject [] Content { get; set; }
@@ -2956,9 +2976,8 @@ namespace AppKit {
 		CGRect FrameForItemAtIndex (nint index, nint numberOfItems);
 #endif
 
-		[Protocolize]
 		[NullAllowed, Export ("dataSource", ArgumentSemantic.Weak)]
-		NSCollectionViewDataSource DataSource { get; set; }
+		INSCollectionViewDataSource DataSource { get; set; }
 
 		[Export ("reloadData")]
 		void ReloadData ();
@@ -3096,6 +3115,8 @@ namespace AppKit {
 		INSCollectionViewPrefetching PrefetchDataSource { get; set; }
 	}
 
+	interface INSCollectionViewDataSource { }
+
 	// @protocol NSCollectionViewDataSource <NSObject>
 	[NoMacCatalyst]
 	[Protocol, Model]
@@ -3115,6 +3136,8 @@ namespace AppKit {
 		[Export ("collectionView:viewForSupplementaryElementOfKind:atIndexPath:")]
 		NSView GetView (NSCollectionView collectionView, NSString kind, NSIndexPath indexPath);
 	}
+
+	interface INSCollectionViewDelegate { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
@@ -3139,14 +3162,14 @@ namespace AppKit {
 #if NET
 		NSDragOperation ValidateDrop (NSCollectionView collectionView, INSDraggingInfo draggingInfo, ref nint dropIndex, ref NSCollectionViewDropOperation dropOperation);
 #else
-		NSDragOperation ValidateDrop (NSCollectionView collectionView, [Protocolize (4)] NSDraggingInfo draggingInfo, ref nint dropIndex, ref NSCollectionViewDropOperation dropOperation);
+		NSDragOperation ValidateDrop (NSCollectionView collectionView, NSDraggingInfo draggingInfo, ref nint dropIndex, ref NSCollectionViewDropOperation dropOperation);
 #endif
 
 		[Export ("collectionView:acceptDrop:index:dropOperation:")]
 #if NET
 		bool AcceptDrop (NSCollectionView collectionView, INSDraggingInfo draggingInfo, nint index, NSCollectionViewDropOperation dropOperation);
 #else
-		bool AcceptDrop (NSCollectionView collectionView, [Protocolize (4)] NSDraggingInfo draggingInfo, nint index, NSCollectionViewDropOperation dropOperation);
+		bool AcceptDrop (NSCollectionView collectionView, NSDraggingInfo draggingInfo, nint index, NSCollectionViewDropOperation dropOperation);
 #endif
 
 		[Export ("collectionView:canDragItemsAtIndexPaths:withEvent:")]
@@ -3165,7 +3188,7 @@ namespace AppKit {
 
 #if !NET
 		[Export ("collectionView:validateDrop:proposedIndexPath:dropOperation:")]
-		NSDragOperation ValidateDropOperation (NSCollectionView collectionView, [Protocolize (4)] NSDraggingInfo draggingInfo, ref NSIndexPath proposedDropIndexPath, ref NSCollectionViewDropOperation proposedDropOperation);
+		NSDragOperation ValidateDropOperation (NSCollectionView collectionView, NSDraggingInfo draggingInfo, ref NSIndexPath proposedDropIndexPath, ref NSCollectionViewDropOperation proposedDropOperation);
 #else
 		[Export ("collectionView:validateDrop:proposedIndexPath:dropOperation:")]
 		NSDragOperation ValidateDrop (NSCollectionView collectionView, INSDraggingInfo draggingInfo, ref NSIndexPath proposedDropIndexPath, ref NSCollectionViewDropOperation proposedDropOperation);
@@ -3175,7 +3198,7 @@ namespace AppKit {
 #if NET
 		bool AcceptDrop (NSCollectionView collectionView, INSDraggingInfo draggingInfo, NSIndexPath indexPath, NSCollectionViewDropOperation dropOperation);
 #else
-		bool AcceptDrop (NSCollectionView collectionView, [Protocolize (4)] NSDraggingInfo draggingInfo, NSIndexPath indexPath, NSCollectionViewDropOperation dropOperation);
+		bool AcceptDrop (NSCollectionView collectionView, NSDraggingInfo draggingInfo, NSIndexPath indexPath, NSCollectionViewDropOperation dropOperation);
 #endif
 
 		[Export ("collectionView:pasteboardWriterForItemAtIndexPath:")]
@@ -4715,8 +4738,7 @@ namespace AppKit {
 		NativeHandle Constructor (CGRect frameRect);
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSComboBoxDelegate Delegate { get; set; }
+		INSComboBoxDelegate Delegate { get; set; }
 
 		[Export ("hasVerticalScroller")]
 		bool HasVerticalScroller { get; set; }
@@ -4765,8 +4787,7 @@ namespace AppKit {
 
 		[Export ("dataSource", ArgumentSemantic.Assign)]
 		[NullAllowed]
-		[Protocolize]
-		NSComboBoxDataSource DataSource { get; set; }
+		INSComboBoxDataSource DataSource { get; set; }
 
 		[Export ("addItemWithObjectValue:")]
 		void Add (NSObject object1);
@@ -4813,6 +4834,8 @@ namespace AppKit {
 		[Notification, Field ("NSComboBoxWillPopUpNotification")]
 		NSString WillPopUpNotification { get; }
 	}
+
+	interface INSComboBoxDataSource { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
@@ -4885,8 +4908,7 @@ namespace AppKit {
 
 		[Export ("dataSource", ArgumentSemantic.Assign)]
 		[NullAllowed]
-		[Protocolize]
-		NSComboBoxCellDataSource DataSource { get; set; }
+		INSComboBoxCellDataSource DataSource { get; set; }
 
 		[Export ("addItemWithObjectValue:")]
 		void Add (NSObject object1);
@@ -4925,6 +4947,8 @@ namespace AppKit {
 		string CompletedString (string substring);
 
 	}
+
+	interface INSComboBoxCellDataSource { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
@@ -5485,8 +5509,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSDatePickerCellDelegate Delegate { get; set; }
+		INSDatePickerCellDelegate Delegate { get; set; }
 	}
 
 	[NoMacCatalyst]
@@ -5543,10 +5566,11 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSDatePickerCellDelegate Delegate { get; set; }
+		INSDatePickerCellDelegate Delegate { get; set; }
 
 	}
+
+	interface INSDatePickerCellDelegate { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
@@ -6313,6 +6337,8 @@ namespace AppKit {
 
 	interface INSDraggingInfo { }
 
+	interface INSDraggingDestination { }
+
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
 	[Model]
@@ -6322,49 +6348,49 @@ namespace AppKit {
 #if NET
 		NSDragOperation DraggingEntered (INSDraggingInfo sender);
 #else
-		NSDragOperation DraggingEntered ([Protocolize (4)] NSDraggingInfo sender);
+		NSDragOperation DraggingEntered (NSDraggingInfo sender);
 #endif
 
 		[Export ("draggingUpdated:"), DefaultValue (NSDragOperation.None)]
 #if NET
 		NSDragOperation DraggingUpdated (INSDraggingInfo sender);
 #else
-		NSDragOperation DraggingUpdated ([Protocolize (4)] NSDraggingInfo sender);
+		NSDragOperation DraggingUpdated (NSDraggingInfo sender);
 #endif
 
 		[Export ("draggingExited:")]
 #if NET
 		void DraggingExited ([NullAllowed] INSDraggingInfo sender);
 #else
-		void DraggingExited ([Protocolize (4)] NSDraggingInfo sender);
+		void DraggingExited (NSDraggingInfo sender);
 #endif
 
 		[Export ("prepareForDragOperation:"), DefaultValue (false)]
 #if NET
 		bool PrepareForDragOperation (INSDraggingInfo sender);
 #else
-		bool PrepareForDragOperation ([Protocolize (4)] NSDraggingInfo sender);
+		bool PrepareForDragOperation (NSDraggingInfo sender);
 #endif
 
 		[Export ("performDragOperation:"), DefaultValue (false)]
 #if NET
 		bool PerformDragOperation (INSDraggingInfo sender);
 #else
-		bool PerformDragOperation ([Protocolize (4)] NSDraggingInfo sender);
+		bool PerformDragOperation (NSDraggingInfo sender);
 #endif
 
 		[Export ("concludeDragOperation:")]
 #if NET
 		void ConcludeDragOperation ([NullAllowed] INSDraggingInfo sender);
 #else
-		void ConcludeDragOperation ([Protocolize (4)] NSDraggingInfo sender);
+		void ConcludeDragOperation (NSDraggingInfo sender);
 #endif
 
 		[Export ("draggingEnded:")]
 #if NET
 		void DraggingEnded (INSDraggingInfo sender);
 #else
-		void DraggingEnded ([Protocolize (4)] NSDraggingInfo sender);
+		void DraggingEnded (NSDraggingInfo sender);
 #endif
 
 		[DebuggerBrowsableAttribute (DebuggerBrowsableState.Never)]
@@ -6401,6 +6427,8 @@ namespace AppKit {
 		[Export ("enumerateDraggingItemsWithOptions:forView:classes:searchOptions:usingBlock:")]
 		void EnumerateDraggingItems (NSDraggingItemEnumerationOptions enumOpts, NSView view, IntPtr classArray, [NullAllowed] NSDictionary searchOptions, NSDraggingEnumerator enumerator);
 	}
+
+	interface INSDraggingSource { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
@@ -6451,8 +6479,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSDrawerDelegate Delegate { get; set; }
+		INSDrawerDelegate Delegate { get; set; }
 
 		[Export ("open")]
 		void Open ();
@@ -6493,6 +6520,8 @@ namespace AppKit {
 		[Export ("trailingOffset")]
 		nfloat TrailingOffset { get; set; }
 	}
+
+	interface INSDrawerDelegate { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
@@ -7086,9 +7115,17 @@ namespace AppKit {
 		[Export ("requiresFontAssetRequest")]
 		bool RequiresFontAssetRequest { get; }
 
-		[Export ("fontDescriptorWithDesign:")]
+#if XAMCORE_5_0
+		[Wrap ("Create (design.GetConstant ()!)")]
+#else
+		[Wrap ("Create (design.GetConstant ()!)", IsVirtual = true)]
+#endif
 		[return: NullAllowed]
 		NSFontDescriptor Create (NSFontDescriptorSystemDesign design);
+
+		[Export ("fontDescriptorWithDesign:")]
+		[return: NullAllowed]
+		NSFontDescriptor Create (NSString design);
 
 		[Mac (11, 0)]
 		[Static]
@@ -8160,8 +8197,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSGestureRecognizerDelegate Delegate { get; set; }
+		INSGestureRecognizerDelegate Delegate { get; set; }
 
 		[Export ("enabled")]
 		bool Enabled { [Bind ("isEnabled")] get; set; }
@@ -8268,6 +8304,8 @@ namespace AppKit {
 		[Export ("touchesCancelledWithEvent:")]
 		void TouchesCancelled (NSEvent touchEvent);
 	}
+
+	interface INSGestureRecognizerDelegate { }
 
 	[NoMacCatalyst]
 	[Protocol, Model]
@@ -8446,9 +8484,8 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
 		[NullAllowed]
-		NSMenuDelegate Delegate { get; set; }
+		INSMenuDelegate Delegate { get; set; }
 
 		[Export ("minimumWidth")]
 		nfloat MinimumWidth { get; set; }
@@ -9197,6 +9234,8 @@ namespace AppKit {
 	interface NSRemoteOpenPanel { }
 #endif
 
+	interface INSOpenSavePanelDelegate { }
+
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
 	[Model]
@@ -9312,8 +9351,7 @@ namespace AppKit {
 
 		[Wrap ("WeakDelegate")]
 		[NullAllowed]
-		[Protocolize]
-		NSOutlineViewDelegate Delegate { get; set; }
+		INSOutlineViewDelegate Delegate { get; set; }
 
 		[Export ("dataSource", ArgumentSemantic.Weak)]
 		[NullAllowed]
@@ -9321,8 +9359,7 @@ namespace AppKit {
 
 		[Wrap ("WeakDataSource")]
 		[NullAllowed]
-		[Protocolize]
-		NSOutlineViewDataSource DataSource { get; set; }
+		INSOutlineViewDataSource DataSource { get; set; }
 
 		[Export ("numberOfChildrenOfItem:")]
 		nint NumberOfChildren ([NullAllowed] NSObject item);
@@ -9339,6 +9376,8 @@ namespace AppKit {
 		[Export ("stronglyReferencesItems")]
 		bool StronglyReferencesItems { get; set; }
 	}
+
+	interface INSOutlineViewDelegate { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
@@ -9470,6 +9509,8 @@ namespace AppKit {
 		void UserDidChangeVisibility (NSOutlineView outlineView, NSTableColumn [] columns);
 	}
 
+	interface INSOutlineViewDataSource { }
+
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
 	[Model]
@@ -9507,14 +9548,14 @@ namespace AppKit {
 #if NET
 		NSDragOperation ValidateDrop (NSOutlineView outlineView, INSDraggingInfo info, [NullAllowed] NSObject item, nint index);
 #else
-		NSDragOperation ValidateDrop (NSOutlineView outlineView, [Protocolize (4)] NSDraggingInfo info, [NullAllowed] NSObject item, nint index);
+		NSDragOperation ValidateDrop (NSOutlineView outlineView, NSDraggingInfo info, [NullAllowed] NSObject item, nint index);
 #endif
 
 		[Export ("outlineView:acceptDrop:item:childIndex:")]
 #if NET
 		bool AcceptDrop (NSOutlineView outlineView, INSDraggingInfo info, [NullAllowed] NSObject item, nint index);
 #else
-		bool AcceptDrop (NSOutlineView outlineView, [Protocolize (4)] NSDraggingInfo info, [NullAllowed] NSObject item, nint index);
+		bool AcceptDrop (NSOutlineView outlineView, NSDraggingInfo info, [NullAllowed] NSObject item, nint index);
 #endif
 
 		[Export ("outlineView:namesOfPromisedFilesDroppedAtDestination:forDraggedItems:")]
@@ -9788,8 +9829,7 @@ namespace AppKit {
 
 		[NoMacCatalyst]
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSImageDelegate Delegate { get; set; }
+		INSImageDelegate Delegate { get; set; }
 
 		[NoMacCatalyst]
 		[Export ("cacheMode")]
@@ -10460,6 +10500,8 @@ namespace AppKit {
 		void UpdateAttachmentsFromPath (string path);
 	}
 
+	interface INSImageDelegate { }
+
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
 	[Model]
@@ -10993,8 +11035,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSMatrixDelegate Delegate { get; set; }
+		INSMatrixDelegate Delegate { get; set; }
 
 		//Detected properties
 		[Export ("tabKeyTraversesCells")]
@@ -11173,6 +11214,8 @@ namespace AppKit {
 		[Export ("magnification")]
 		nfloat Magnification { get; set; }
 	}
+
+	interface INSMatrixDelegate { }
 
 	[NoMacCatalyst]
 	[Model]
@@ -11602,7 +11645,7 @@ namespace AppKit {
 		string GetAvailableTypeFromArray (string [] types);
 
 		[Export ("setDataProvider:forTypes:")]
-		bool SetDataProviderForTypes ([Protocolize] NSPasteboardItemDataProvider dataProvider, string [] types);
+		bool SetDataProviderForTypes (INSPasteboardItemDataProvider dataProvider, string [] types);
 
 		[Export ("setData:forType:")]
 		bool SetDataForType (NSData data, string type);
@@ -11629,6 +11672,8 @@ namespace AppKit {
 		SWCollaborationMetadata CollaborationMetadata { get; set; }
 
 	}
+
+	interface INSPasteboardItemDataProvider { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
@@ -11704,8 +11749,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSPathCellDelegate Delegate { get; set; }
+		INSPathCellDelegate Delegate { get; set; }
 
 		[Static, Export ("pathComponentCellClass")]
 		Class PathComponentCellClass { get; }
@@ -11745,6 +11789,8 @@ namespace AppKit {
 		[Export ("setControlSize:")]
 		void SetControlSize (NSControlSize size);
 	}
+
+	interface INSPathCellDelegate { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
@@ -11805,8 +11851,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSPathControlDelegate Delegate { get; set; }
+		INSPathControlDelegate Delegate { get; set; }
 
 		[Export ("menu", ArgumentSemantic.Retain)]
 		[NullAllowed]
@@ -11832,6 +11877,8 @@ namespace AppKit {
 
 	}
 
+	interface INSPathControlDelegate { }
+
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
 	[Model]
@@ -11844,14 +11891,14 @@ namespace AppKit {
 #if NET
 		NSDragOperation ValidateDrop (NSPathControl pathControl, INSDraggingInfo info);
 #else
-		NSDragOperation ValidateDrop (NSPathControl pathControl, [Protocolize (4)] NSDraggingInfo info);
+		NSDragOperation ValidateDrop (NSPathControl pathControl, NSDraggingInfo info);
 #endif
 
 		[Export ("pathControl:acceptDrop:")]
 #if NET
 		bool AcceptDrop (NSPathControl pathControl, INSDraggingInfo info);
 #else
-		bool AcceptDrop (NSPathControl pathControl, [Protocolize (4)] NSDraggingInfo info);
+		bool AcceptDrop (NSPathControl pathControl, NSDraggingInfo info);
 #endif
 
 		[Export ("pathControl:willDisplayOpenPanel:")]
@@ -11912,8 +11959,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSPopoverDelegate Delegate { set; get; }
+		INSPopoverDelegate Delegate { set; get; }
 
 		[Export ("showRelativeToRect:ofView:preferredEdge:")]
 		void Show (CGRect relativePositioningRect, NSView positioningView, NSRectEdge preferredEdge);
@@ -11961,6 +12007,8 @@ namespace AppKit {
 		[Internal, Export ("NSPopoverCloseReasonKey")]
 		NSString _Reason { get; }
 	}
+
+	interface INSPopoverDelegate { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
@@ -13336,8 +13384,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSOpenSavePanelDelegate Delegate { get; set; }
+		INSOpenSavePanelDelegate Delegate { get; set; }
 
 		[Export ("canCreateDirectories")]
 		bool CanCreateDirectories { get; set; }
@@ -13850,8 +13897,7 @@ namespace AppKit {
 
 		[Wrap ("WeakDelegate")]
 		[NullAllowed]
-		[Protocolize]
-		NSSearchFieldDelegate Delegate { get; set; }
+		INSSearchFieldDelegate Delegate { get; set; }
 
 		[NullAllowed, Export ("delegate", ArgumentSemantic.Assign)]
 		NSObject WeakDelegate { get; set; }
@@ -13872,6 +13918,8 @@ namespace AppKit {
 		[Export ("cancelButtonBounds")]
 		CGRect CancelButtonBounds { get; }
 	}
+
+	interface INSSearchFieldDelegate { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
@@ -14384,8 +14432,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSSpeechRecognizerDelegate Delegate { get; set; }
+		INSSpeechRecognizerDelegate Delegate { get; set; }
 
 		[Export ("commands")]
 		string [] Commands { get; set; }
@@ -14399,6 +14446,8 @@ namespace AppKit {
 		[Export ("blocksOtherRecognizers")]
 		bool BlocksOtherRecognizers { get; set; }
 	}
+
+	interface INSSpeechRecognizerDelegate { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
@@ -14469,8 +14518,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSSpeechSynthesizerDelegate Delegate { get; set; }
+		INSSpeechSynthesizerDelegate Delegate { get; set; }
 
 		[Export ("voice"), Protected]
 		string GetVoice ();
@@ -14487,6 +14535,8 @@ namespace AppKit {
 		[Export ("usesFeedbackWindow")]
 		bool UsesFeedbackWindow { get; set; }
 	}
+
+	interface INSSpeechSynthesizerDelegate { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
@@ -14763,8 +14813,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSSoundDelegate Delegate { get; set; }
+		INSSoundDelegate Delegate { get; set; }
 
 		[Export ("volume")]
 		float Volume { get; set; } /* float, not CGFloat */
@@ -14782,6 +14831,8 @@ namespace AppKit {
 		[Export ("channelMapping")]
 		NSObject ChannelMapping { get; set; }
 	}
+
+	interface INSSoundDelegate { }
 
 	[NoMacCatalyst]
 	[Model, BaseType (typeof (NSObject))]
@@ -14835,8 +14886,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSSplitViewDelegate Delegate { get; set; }
+		INSSplitViewDelegate Delegate { get; set; }
 
 		[Export ("arrangesAllSubviews")]
 		bool ArrangesAllSubviews { get; set; }
@@ -15054,7 +15104,7 @@ namespace AppKit {
 #if NET
 		void Activated (bool activated, INSDraggingInfo draggingInfo);
 #else
-		void Activated (bool activated, [Protocolize (4)] NSDraggingInfo draggingInfo);
+		void Activated (bool activated, NSDraggingInfo draggingInfo);
 #endif
 
 		[Abstract]
@@ -15062,35 +15112,35 @@ namespace AppKit {
 #if NET
 		void HighlightChanged (INSDraggingInfo draggingInfo);
 #else
-		void HighlightChanged ([Protocolize (4)] NSDraggingInfo draggingInfo);
+		void HighlightChanged (NSDraggingInfo draggingInfo);
 #endif
 
 		[Export ("springLoadingEntered:")]
 #if NET
 		NSSpringLoadingOptions Entered (INSDraggingInfo draggingInfo);
 #else
-		NSSpringLoadingOptions Entered ([Protocolize (4)] NSDraggingInfo draggingInfo);
+		NSSpringLoadingOptions Entered (NSDraggingInfo draggingInfo);
 #endif
 
 		[Export ("springLoadingUpdated:")]
 #if NET
 		NSSpringLoadingOptions Updated (INSDraggingInfo draggingInfo);
 #else
-		NSSpringLoadingOptions Updated ([Protocolize (4)] NSDraggingInfo draggingInfo);
+		NSSpringLoadingOptions Updated (NSDraggingInfo draggingInfo);
 #endif
 
 		[Export ("springLoadingExited:")]
 #if NET
 		void Exited (INSDraggingInfo draggingInfo);
 #else
-		void Exited ([Protocolize (4)] NSDraggingInfo draggingInfo);
+		void Exited (NSDraggingInfo draggingInfo);
 #endif
 
 		[Export ("draggingEnded:")]
 #if NET
 		void DraggingEnded (INSDraggingInfo draggingInfo);
 #else
-		void DraggingEnded ([Protocolize (4)] NSDraggingInfo draggingInfo);
+		void DraggingEnded (NSDraggingInfo draggingInfo);
 #endif
 	}
 
@@ -15105,8 +15155,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSStackViewDelegate Delegate { get; set; }
+		INSStackViewDelegate Delegate { get; set; }
 
 		[Export ("orientation")]
 		NSUserInterfaceLayoutOrientation Orientation { get; set; }
@@ -15191,6 +15240,8 @@ namespace AppKit {
 		[Export ("removeArrangedSubview:")]
 		void RemoveArrangedSubview (NSView view);
 	}
+
+	interface INSStackViewDelegate { }
 
 	[NoMacCatalyst]
 	[Protocol, Model]
@@ -15536,6 +15587,8 @@ namespace AppKit {
 		string Identifier { get; set; }
 	}
 
+	interface INSTextFinderClient { }
+
 	[NoMacCatalyst]
 	[Protocol]
 #if !NET
@@ -15669,6 +15722,8 @@ namespace AppKit {
 
 	}
 
+	interface INSTextFinderBarContainer { }
+
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject)), Model, Protocol]
 	partial interface NSTextFinderBarContainer {
@@ -15690,12 +15745,10 @@ namespace AppKit {
 	[BaseType (typeof (NSObject))]
 	partial interface NSTextFinder : NSCoding {
 		[Export ("client", ArgumentSemantic.Assign)]
-		[Protocolize]
-		NSTextFinderClient Client { set; }
+		INSTextFinderClient Client { set; }
 
 		[Export ("findBarContainer", ArgumentSemantic.Assign)]
-		[Protocolize]
-		NSTextFinderBarContainer FindBarContainer { set; }
+		INSTextFinderBarContainer FindBarContainer { set; }
 
 		[Export ("findIndicatorNeedsUpdate")]
 		bool FindIndicatorNeedsUpdate { get; set; }
@@ -16203,7 +16256,7 @@ namespace AppKit {
 		string [] RegisteredDragTypes ();
 
 		[Export ("beginDraggingSessionWithItems:event:source:")]
-		NSDraggingSession BeginDraggingSession (NSDraggingItem [] items, NSEvent evnt, [Protocolize] NSDraggingSource source);
+		NSDraggingSession BeginDraggingSession (NSDraggingItem [] items, NSEvent evnt, INSDraggingSource source);
 
 		[Deprecated (PlatformName.MacOSX, 10, 7, message: "Use BeginDraggingSession instead.")]
 		[Export ("dragImage:at:offset:event:pasteboard:source:slideBack:")]
@@ -16748,7 +16801,7 @@ namespace AppKit {
 		NSViewController PresentingViewController { get; }
 
 		[Export ("presentViewController:animator:")]
-		void PresentViewController (NSViewController viewController, [Protocolize] NSViewControllerPresentationAnimator animator);
+		void PresentViewController (NSViewController viewController, INSViewControllerPresentationAnimator animator);
 
 		[Export ("dismissViewController:")]
 		void DismissViewController (NSViewController viewController);
@@ -16855,8 +16908,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate"), NullAllowed]
-		[Protocolize]
-		NSPageControllerDelegate Delegate { get; set; }
+		INSPageControllerDelegate Delegate { get; set; }
 
 		[Export ("arrangedObjects", ArgumentSemantic.Copy)]
 		NSObject [] ArrangedObjects { get; set; }
@@ -16885,6 +16937,8 @@ namespace AppKit {
 		[Export ("navigateForward:")]
 		void NavigateForward (NSObject sender);
 	}
+
+	interface INSPageControllerDelegate { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject)), Model, Protocol]
@@ -17297,8 +17351,7 @@ namespace AppKit {
 
 		[Wrap ("WeakDataSource")]
 		[NullAllowed]
-		[Protocolize]
-		NSTableViewDataSource DataSource { get; set; }
+		INSTableViewDataSource DataSource { get; set; }
 
 		[Export ("delegate", ArgumentSemantic.Assign)]
 		[NullAllowed]
@@ -17306,8 +17359,7 @@ namespace AppKit {
 
 		[Wrap ("WeakDelegate")]
 		[NullAllowed]
-		[Protocolize]
-		NSTableViewDelegate Delegate { get; set; }
+		INSTableViewDelegate Delegate { get; set; }
 
 		[Export ("headerView", ArgumentSemantic.Retain), NullAllowed]
 		NSTableHeaderView HeaderView { get; set; }
@@ -17472,6 +17524,8 @@ namespace AppKit {
 		NSTableViewStyle EffectiveStyle { get; }
 	}
 
+	interface INSTableViewDelegate { }
+
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
 	[Model]
@@ -17564,6 +17618,8 @@ namespace AppKit {
 		NSTableViewRowAction [] RowActions (NSTableView tableView, nint row, NSTableRowActionEdge edge);
 	}
 
+	interface INSTableViewDataSource { }
+
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
 	[Model]
@@ -17589,14 +17645,14 @@ namespace AppKit {
 #if NET
 		NSDragOperation ValidateDrop (NSTableView tableView, INSDraggingInfo info, nint row, NSTableViewDropOperation dropOperation);
 #else
-		NSDragOperation ValidateDrop (NSTableView tableView, [Protocolize (4)] NSDraggingInfo info, nint row, NSTableViewDropOperation dropOperation);
+		NSDragOperation ValidateDrop (NSTableView tableView, NSDraggingInfo info, nint row, NSTableViewDropOperation dropOperation);
 #endif
 
 		[Export ("tableView:acceptDrop:row:dropOperation:")]
 #if NET
 		bool AcceptDrop (NSTableView tableView, INSDraggingInfo info, nint row, NSTableViewDropOperation dropOperation);
 #else
-		bool AcceptDrop (NSTableView tableView, [Protocolize (4)] NSDraggingInfo info, nint row, NSTableViewDropOperation dropOperation);
+		bool AcceptDrop (NSTableView tableView, NSDraggingInfo info, nint row, NSTableViewDropOperation dropOperation);
 #endif
 
 		[Deprecated (PlatformName.MacOSX, 10, 13, message: "Use 'NSFilePromiseReceiver' instead.")]
@@ -17616,7 +17672,7 @@ namespace AppKit {
 #if NET
 		void UpdateDraggingItems (NSTableView tableView, INSDraggingInfo draggingInfo);
 #else
-		void UpdateDraggingItems (NSTableView tableView, [Protocolize (4)] NSDraggingInfo draggingInfo);
+		void UpdateDraggingItems (NSTableView tableView, NSDraggingInfo draggingInfo);
 #endif
 	}
 
@@ -17728,14 +17784,14 @@ namespace AppKit {
 #if NET
 		NSDragOperation ValidateDrop (NSTableView tableView, INSDraggingInfo info, nint row, NSTableViewDropOperation dropOperation);
 #else
-		NSDragOperation ValidateDrop (NSTableView tableView, [Protocolize (4)] NSDraggingInfo info, nint row, NSTableViewDropOperation dropOperation);
+		NSDragOperation ValidateDrop (NSTableView tableView, NSDraggingInfo info, nint row, NSTableViewDropOperation dropOperation);
 #endif
 
 		[Export ("tableView:acceptDrop:row:dropOperation:")]
 #if NET
 		bool AcceptDrop (NSTableView tableView, INSDraggingInfo info, nint row, NSTableViewDropOperation dropOperation);
 #else
-		bool AcceptDrop (NSTableView tableView, [Protocolize (4)] NSDraggingInfo info, nint row, NSTableViewDropOperation dropOperation);
+		bool AcceptDrop (NSTableView tableView, NSDraggingInfo info, nint row, NSTableViewDropOperation dropOperation);
 #endif
 
 		[Deprecated (PlatformName.MacOSX, 10, 13, message: "Use 'NSFilePromiseReceiver' objects instead.")]
@@ -17767,7 +17823,7 @@ namespace AppKit {
 #if NET
 		void UpdateDraggingItems (NSTableView tableView, INSDraggingInfo draggingInfo);
 #else
-		void UpdateDraggingItems (NSTableView tableView, [Protocolize (4)] NSDraggingInfo draggingInfo);
+		void UpdateDraggingItems (NSTableView tableView, NSDraggingInfo draggingInfo);
 #endif
 	}
 
@@ -17910,8 +17966,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate", IsVirtual = true)]
-		[Protocolize]
-		NSTabViewDelegate Delegate { get; set; }
+		INSTabViewDelegate Delegate { get; set; }
 
 		[Export ("tabViewItemAtPoint:")]
 		NSTabViewItem TabViewItemAtPoint (CGPoint point);
@@ -18017,6 +18072,8 @@ namespace AppKit {
 		[Export ("toolbarSelectableItemIdentifiers:"), DelegateName ("NSToolbarIdentifiers")]
 		new string [] SelectableItemIdentifiers (NSToolbar toolbar);
 	}
+
+	interface INSTabViewDelegate { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
@@ -18192,8 +18249,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSTextDelegate Delegate { get; set; }
+		INSTextDelegate Delegate { get; set; }
 
 		[Export ("editable")]
 		bool Editable { [Bind ("isEditable")] get; set; }
@@ -18246,6 +18302,8 @@ namespace AppKit {
 		[Export ("verticallyResizable")]
 		bool VerticallyResizable { [Bind ("isVerticallyResizable")] get; set; }
 	}
+
+	interface INSTextDelegate { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
@@ -18451,8 +18509,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSTextFieldDelegate Delegate { get; set; }
+		INSTextFieldDelegate Delegate { get; set; }
 
 		[Export ("bezelStyle")]
 		NSTextFieldBezelStyle BezelStyle { get; set; }
@@ -18580,6 +18637,8 @@ namespace AppKit {
 		bool ShouldSelectCandidate (NSTextField textField, NSTextView textView, nuint index);
 	}
 
+	interface INSComboBoxDelegate { }
+
 	[NoMacCatalyst]
 	[BaseType (typeof (NSTextFieldDelegate))]
 	[Model]
@@ -18597,6 +18656,8 @@ namespace AppKit {
 		[Export ("comboBoxSelectionIsChanging:")]
 		void SelectionIsChanging (NSNotification notification);
 	}
+
+	interface INSTokenFieldCellDelegate { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
@@ -18708,8 +18769,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSTokenFieldCellDelegate Delegate { get; set; }
+		INSTokenFieldCellDelegate Delegate { get; set; }
 	}
 
 	[NoMacCatalyst]
@@ -18729,7 +18789,7 @@ namespace AppKit {
 	partial interface NSTextInputContext {
 		[Export ("initWithClient:")]
 		[DesignatedInitializer]
-		NativeHandle Constructor ([Protocolize] NSTextInputClient client);
+		NativeHandle Constructor (INSTextInputClient client);
 
 		[Static]
 		[Export ("currentInputContext")]
@@ -19128,7 +19188,7 @@ namespace AppKit {
 #if NET
 		NSDragOperation DragOperationForDraggingInfo (INSDraggingInfo dragInfo, string type);
 #else
-		NSDragOperation DragOperationForDraggingInfo ([Protocolize (4)] NSDraggingInfo dragInfo, string type);
+		NSDragOperation DragOperationForDraggingInfo (NSDraggingInfo dragInfo, string type);
 #endif
 
 		[Export ("cleanUpAfterDragOperation")]
@@ -19247,8 +19307,7 @@ namespace AppKit {
 		bool AllowsImageEditing { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSTextViewDelegate Delegate { get; set; }
+		INSTextViewDelegate Delegate { get; set; }
 
 #pragma warning disable 0109 // warning CS0109: The member 'NSTextView.Editable' does not hide an accessible member. The new keyword is not required.
 		[Export ("editable")]
@@ -19562,6 +19621,8 @@ namespace AppKit {
 		NSTextCursorAccessoryPlacement PreferredTextAccessoryPlacement { get; }
 	}
 
+	interface INSTextViewDelegate { }
+
 	[NoiOS]
 	[NoMacCatalyst]
 	[BaseType (typeof (NSTextDelegate))]
@@ -19678,12 +19739,13 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSTokenFieldDelegate Delegate { get; set; }
+		INSTokenFieldDelegate Delegate { get; set; }
 
 		[Export ("tokenizingCharacterSet", ArgumentSemantic.Copy)]
 		NSCharacterSet CharacterSet { get; set; }
 	}
+
+	interface INSTokenFieldDelegate { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
@@ -19771,8 +19833,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSToolbarDelegate Delegate { get; set; }
+		INSToolbarDelegate Delegate { get; set; }
 
 		[Export ("visible")]
 		bool Visible { [Bind ("isVisible")] get; set; }
@@ -19872,6 +19933,8 @@ namespace AppKit {
 		[Field ("NSToolbarInspectorTrackingSeparatorItemIdentifier")]
 		NSString NSToolbarInspectorTrackingSeparatorItemIdentifier { get; }
 	}
+
+	interface INSToolbarDelegate { }
 
 	[MacCatalyst (13, 1)]
 	[BaseType (typeof (NSObject))]
@@ -20518,8 +20581,7 @@ namespace AppKit {
 
 		[Wrap ("WeakDelegate")]
 		[NullAllowed]
-		[Protocolize]
-		NSWindowDelegate Delegate { get; set; }
+		INSWindowDelegate Delegate { get; set; }
 
 		[Export ("windowNumber")]
 		nint WindowNumber { get; }
@@ -21582,6 +21644,8 @@ namespace AppKit {
 		void DismissController (NSObject sender);
 	}
 
+	interface INSWindowDelegate { }
+
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
 	[Model]
@@ -22426,8 +22490,7 @@ namespace AppKit {
 		NSObject WeakDelegate { get; set; }
 
 		[Wrap ("WeakDelegate")]
-		[Protocolize]
-		NSRuleEditorDelegate Delegate { get; set; }
+		INSRuleEditorDelegate Delegate { get; set; }
 
 		[Export ("formattingStringsFilename")]
 		string FormattingStringsFilename { get; set; }
@@ -22462,6 +22525,8 @@ namespace AppKit {
 		[Export ("displayValuesKeyPath")]
 		string DisplayValuesKeyPath { get; set; }
 	}
+
+	interface INSRuleEditorDelegate { }
 
 	[NoMacCatalyst]
 	[BaseType (typeof (NSObject))]
@@ -22528,8 +22593,7 @@ namespace AppKit {
 
 		[Wrap ("WeakDelegate")]
 		[NullAllowed]
-		[Protocolize]
-		NSSharingServiceDelegate Delegate { get; set; }
+		INSSharingServiceDelegate Delegate { get; set; }
 
 		[Export ("title", ArgumentSemantic.Copy)]
 		string Title { get; }
@@ -22717,8 +22781,7 @@ namespace AppKit {
 
 		[Wrap ("WeakDelegate")]
 		[NullAllowed]
-		[Protocolize]
-		NSSharingServicePickerDelegate Delegate { get; set; }
+		INSSharingServicePickerDelegate Delegate { get; set; }
 
 		[DesignatedInitializer]
 		[Export ("initWithItems:")]
@@ -22958,7 +23021,7 @@ namespace AppKit {
 #if NET
 		void UpdateDraggingItemsForDrag (NSCollectionView collectionView, INSDraggingInfo draggingInfo);
 #else
-		void UpdateDraggingItemsForDrag (NSCollectionView collectionView, [Protocolize (4)] NSDraggingInfo draggingInfo);
+		void UpdateDraggingItemsForDrag (NSCollectionView collectionView, NSDraggingInfo draggingInfo);
 #endif
 
 		[Export ("collectionView:draggingSession:willBeginAtPoint:forItemsAtIndexes:")]
@@ -23083,7 +23146,7 @@ namespace AppKit {
 #if NET
 		void UpdateDraggingItemsForDrag (NSOutlineView outlineView, INSDraggingInfo draggingInfo);
 #else
-		void UpdateDraggingItemsForDrag (NSOutlineView outlineView, [Protocolize (4)] NSDraggingInfo draggingInfo);
+		void UpdateDraggingItemsForDrag (NSOutlineView outlineView, NSDraggingInfo draggingInfo);
 #endif
 	}
 
@@ -28215,4 +28278,26 @@ namespace AppKit {
 		void EstablishConnection ();
 	}
 
+	[NoMacCatalyst]
+	[Protocol]
+	// This protocol is a candidate for [Model] as well, but the OS will check whether 'showAllHelpTopicsForSearchString:' is implemented
+	// and behave differentely depending on the result. This is not possible to achieve with the generated [Model] class (all selectors
+	// are always implemented), so to avoid potential confusion just offer the protocol interface for developers to use.
+	interface NSUserInterfaceItemSearching {
+		[Abstract]
+		[Export ("searchForItemsWithSearchString:resultLimit:matchedItemHandler:")]
+		void SearchForItems (string searchString, nint resultLimit, Action<NSObject []> matchedItemHandler);
+
+		[Abstract]
+		[Export ("localizedTitlesForItem:")]
+		string [] GetLocalizedTitles (NSObject forItem);
+
+		[Export ("performActionForItem:")]
+		void PerformAction (NSObject forItem);
+
+		[Export ("showAllHelpTopicsForSearchString:")]
+		void ShowAllHelpTopics (string searchString);
+	}
+
+	interface INSUserInterfaceItemSearching { }
 }
